@@ -2,167 +2,192 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Development Commands
+## Essential Commands
 
+### Development Workflow
 ```bash
-# IMPORTANT: Requires TWO terminals for development
-pnpm dev           # Terminal 1: Next.js app on :3000
-pnpm socket        # Terminal 2: Socket.IO server on :3001
+# Development (requires 2 terminals)
+npm run dev        # Terminal 1: Next.js app (port 3000)
+npm run socket     # Terminal 2: Socket.IO server (port 3001)
 
 # Database management
-pnpm db:push       # Push schema changes (development)
-pnpm db:migrate    # Create migration (production)
-pnpm db:studio     # View/edit database with Prisma Studio
+npm run db:push    # Sync Prisma schema to database (development)
+npm run db:migrate # Create migration (production)
+npm run db:studio  # Open Prisma Studio database GUI
 
-# Testing & Quality
-pnpm test          # Unit tests (Vitest)
-pnpm test:e2e      # E2E tests (Playwright)
-pnpm lint          # ESLint
-pnpm build         # Production build
+# Railway deployment
+npm run railway:setup  # Set up database tables in production
+npm run build         # Build for production
+npm run start         # Start production server
+
+# Testing
+npm test             # Unit tests (Vitest)
+npm run test:e2e     # E2E tests (Playwright)
+npm run lint         # ESLint
 ```
 
-## Critical Architecture Understanding
+## Architecture Overview
 
-### Dual Server Requirement
-**This is a dual-server application** - both servers must run simultaneously:
-- **Next.js App** (port 3000): Handles routing, API routes, static pages
-- **Socket.IO Server** (port 3001): Real-time game communication at `/server/socket.ts`
+**Ranking the Stars** is a two-phase interactive ranking game application with real-time multiplayer features.
 
-### Database Model Complexity
-Key relationship to understand for debugging:
-- **PreSubmission model** has complex foreign key relations: `rank1ParticipantId`, `rank2ParticipantId`, `rank3ParticipantId` all reference different participants
-- **Device pairing** supports both individual participants AND teams (nullable foreign keys)
-- **Round states** follow strict progression: `WAITING` → `OPEN` → `CLOSED` → `REVEALED`
+### Core Architecture
+- **Next.js 14** full-stack app with App Router and TypeScript
+- **Dual-server setup**: Next.js app (3000) + separate Socket.IO server (3001)
+- **Prisma ORM** with SQLite (dev) / PostgreSQL (production)
+- **Real-time communication** via Socket.IO for live gameplay
+- **Mobile-first design** with touch-optimized interfaces
 
-### Game Flow & Special Features
-- **F/M/K Questions**: Special question type with `fixedOptions` array (handled in `/components/game/mobile-ranking.tsx`)
-- **Community Scoring**: Scoring algorithm in `/lib/utils.ts` - +1 for top 3, +2 additional for exact position
-- **Weekend Mode**: Simplified interface with hardcoded participants and different routing
-- **Dutch Language**: Questions in `/lib/default-questions.ts` are Dutch-focused for friend groups
+### Database Design Philosophy
+The schema supports a **two-phase game flow**:
+1. **Pre-Event Phase**: Participants submit rankings via unique invite links (`PreSubmission` table)
+2. **Live Event Phase**: Real-time gameplay with device pairing and live scoring (`Submission`, `Score` tables)
 
-## Socket.IO Communication Patterns
+Key relationships:
+- `Room` → `Participant` → `PreSubmission` (pre-event data)
+- `Room` → `Team` → `TeamMember` (team organization)
+- `Round` → `Submission` → `Score` (live gameplay data)
+- `Device` tokens handle mobile device persistence and pairing
 
-### Critical Events to Understand
-```typescript
-// Host actions require token validation
-socket.emit('host-action', { roomId, hostToken, action: 'start-round', questionId })
+### Scoring Algorithm
+The app implements **community-based scoring** where the "correct" answer is determined by collective participant rankings:
+- Community ranking = weighted average of all pre-submissions
+- Individual scores = points for matching community consensus
+- Located in `/lib/utils.ts` - `calculateCommunityRanking()` and `calculateScore()`
 
-// Submissions can be individual OR team-based
-socket.emit('submit-ranking', { 
-  roomCode, roundId, 
-  participantId?: string,  // Individual mode
-  teamId?: string,         // Team mode
-  rankings: { rank1Id, rank2Id, rank3Id }
-})
+## Key Patterns & Conventions
+
+### API Route Structure
+```
+/api/rooms              # Room CRUD with host token validation
+/api/participants       # Roster management
+/api/pre-submissions    # Pre-event ranking submissions
+/api/teams             # Team creation and management
+/api/rounds/[id]/calculate  # Server-side scoring calculations
 ```
 
-### Connection Management
-- All real-time logic in `/server/socket.ts`
-- Rooms isolated by Socket.IO room system
-- Device tokens for reconnection handling
-- Host token validation for all admin actions
+All API routes use:
+- **Zod validation** for request schemas
+- **Prisma transactions** for data consistency
+- **Host token authorization** for admin actions
+- **UUID tokens** for security (invite tokens, device tokens, etc.)
 
-## Key File Locations
+### Socket.IO Event Architecture
+**Client → Server Events:**
+- `join-room` - Device joins with room code and device token
+- `host-action` - Administrative actions (add participant, start round, etc.)
+- `submit-ranking` - Live round submissions
+- `pair-device` - Pair mobile device to participant or team
 
-### Game Logic Components
-- `/components/game/mobile-ranking.tsx` - Core drag & drop ranking component (handles F/M/K and regular questions)
-- `/lib/utils.ts` - Scoring calculations and game utilities
-- `/server/socket.ts` - All real-time Socket.IO event handling
-- `/app/admin/page.tsx` - Admin dashboard with pre-fill functionality and test room creation
+**Server → Client Events:**
+- `room-state` - Complete room state broadcasts
+- `round-started/closed/revealed` - Round lifecycle events
+- `participant-added/updated/deleted` - Roster change notifications
+- `device-paired` - Confirmation of successful device pairing
 
-### Database & Types
-- `/prisma/schema.prisma` - Database schema with complex relationships
-- `/lib/types.ts` - TypeScript interfaces for game state
-- `/lib/default-questions.ts` - Dutch question templates
+### Frontend Page Organization
+```
+/host          # Room creation and admin dashboard
+/play          # Live gameplay interface (mobile-optimized)
+/pre           # Pre-event submission interface (invite link destination)
+/team/[code]/[teamId]  # Team-specific gameplay
+/weekend       # Hardcoded "WEEKEND2024" game mode
+/simple        # Alternative simplified game variant
+```
 
-### API Routes Pattern
-- `/app/api/rooms/route.ts` - Room creation with participants and questions
-- `/app/api/pre-submissions/route.ts` - Pre-event ranking storage/retrieval
+### Component Architecture
+- **UI Components** (`/components/ui/`) - Reusable primitives following shadcn/ui patterns
+- **Host Components** (`/components/host/`) - Admin dashboard components with real-time state
+- **Game Components** (`/components/game/`) - Mobile-optimized ranking interfaces with drag & drop
 
-## Environment Setup
+### Mobile Device Handling
+The app has sophisticated mobile device management:
+- **Device tokens** (UUID) persist across page reloads
+- **Device pairing codes** (6-char) for temporary team pairing
+- **localStorage integration** for offline persistence
+- **Touch-optimized ranking** interfaces
+
+## Development Considerations
+
+### Environment Variables
 ```bash
-# Required environment variables
-DATABASE_URL="file:./dev.db"                        # SQLite for dev
-NEXT_PUBLIC_SOCKET_URL="http://localhost:3001"      # Socket.IO server
-SOCKET_PORT=3001                                     # Socket server port
-NEXT_PUBLIC_APP_URL="http://localhost:3000"         # For QR codes
+DATABASE_URL                 # Prisma database connection
+NEXT_PUBLIC_SOCKET_URL      # Socket.IO server URL for client
+SOCKET_PORT                 # Socket.IO server port
+NEXT_PUBLIC_APP_URL         # Base URL for QR code generation
 ```
 
-## Common Development Patterns
+### Testing Strategy
+- **Unit tests** focus on scoring logic and utility functions
+- **E2E tests** cover complete game flows from host setup to participant gameplay
+- **Real device testing** required for mobile touch interactions
 
-### Debugging Socket.IO Issues
+### Security Principles
+- **All scoring calculated server-side** to prevent tampering
+- **Host token validation** for administrative actions
+- **UUID tokens** for all authentication (not sequential IDs)
+- **No sensitive tokens exposed** to client-side code
+- **Team pairing codes expire** after 1 minute
+
+### Common Development Patterns
+- **Real-time state management** via Socket.IO events, not polling
+- **Optimistic updates** with server reconciliation
+- **Mobile-first responsive design** with touch interactions
+- **Local storage fallbacks** for offline functionality
+
+### Railway Deployment Notes
+- App uses **PostgreSQL in production** (not SQLite)
+- **Separate Socket.IO server deployment** required
+- **Database setup** via `railway:setup` script after deployment
+- **Environment variables auto-injected** by Railway services
+
+## Special Game Features
+
+### Weekend Mode
+- Hardcoded `WEEKEND2024` room with pre-configured participants
+- Auto-creates room and participants on first visit
+- Simplified interface optimized for friend group events
+- Dutch language questions targeting social dynamics
+
+### F/M/K Questions
+- Special question type with `fixedOptions` array
+- Handled by `MobileRanking` component with `type: 'fmk'` detection
+- Admin interface has specialized F/M/K selection logic
+- Targets (Aylin/Keone/Ceana) vs Actions (F/M/K) separation
+
+### Community Scoring Algorithm
 ```typescript
-// Check Socket.IO events in browser DevTools Network tab
-// Server logs show connection/disconnection events
-// Use pnpm db:studio to inspect database state during testing
+// Scoring logic in /lib/utils.ts
+// +1 point for having someone in community top 3
+// +2 additional points for exact position match
+// Community ranking determined by weighted average of pre-submissions
 ```
-
-### Mobile Ranking Component Usage
-```typescript
-// The mobile-ranking component handles both regular and F/M/K questions
-const isSpecialQuestion = question.type === 'fmk'
-const availableOptions = isSpecialQuestion 
-  ? question.fixedOptions || []
-  : participants.map(p => p.id)
-```
-
-### Team vs Individual Submission Handling
-```typescript
-// Socket events support both modes - check for participantId OR teamId
-socket.on('submit-ranking', async (data: {
-  participantId?: string;  // Individual play
-  teamId?: string;         // Team play
-  // ... rest of data
-}) => {
-  // Handle both cases in server/socket.ts
-})
-```
-
-### Admin Interface Patterns
-- **Weekend Game**: Uses fixed room code "WEEKEND2024" with pre-configured participants
-- **Test Room**: Creates random room code with sample participants for testing
-- **Pre-fill Logic**: Complex F/M/K handling in admin dashboard with proper target/action separation
-
-## Recent Architecture Changes & Bug Fixes
-
-### F/M/K Implementation Standardization
-- **Issue**: Multiple competing F/M/K implementations across components
-- **Solution**: Standardized on `MobileRanking` component with `type: 'fmk'` detection
-- **Key Files**: `/components/game/mobile-ranking.tsx`, `/app/play/page.tsx`
-
-### Database Persistence Issues
-- **Issue**: Admin page was only saving to localStorage, losing data on logout
-- **Solution**: Integrated admin interface with database via API routes
-- **Key Files**: `/app/admin/page.tsx`, `/app/api/pre-submissions/route.ts`
-
-### Socket.IO Team vs Individual Data Mismatch
-- **Issue**: Teams were sending team IDs as participant IDs in socket events
-- **Solution**: Updated socket handler to accept both `participantId` and `teamId`
-- **Key Files**: `/server/socket.ts`
-
-### Admin F/M/K Selection Logic
-- **Issue**: Confusing variable naming and incorrect data structure handling
-- **Solution**: Clear separation between targets (Aylin/Keone/Ceana) and actions (F/M/K)
-- **Key Files**: `/app/admin/page.tsx` (lines 600-650 region)
 
 ## Troubleshooting Common Issues
 
 ### Socket Connection Problems
-- Check `NEXT_PUBLIC_SOCKET_URL` environment variable matches Socket.IO server port
-- Ensure both `pnpm dev` AND `pnpm socket` are running simultaneously
-- Clear browser localStorage if pairing fails
+- Verify `NEXT_PUBLIC_SOCKET_URL` points to correct Socket.IO server
+- Check CORS configuration in `server/socket.ts`
+- Ensure both Next.js and Socket.IO servers are running in development
 
 ### Database Issues
-- Run `pnpm db:push` after schema changes
-- Use `pnpm db:studio` to inspect database state
-- Check that DATABASE_URL points to correct file
+- Run `npm run db:push` to sync schema changes
+- Use `npm run db:studio` to inspect data
+- Check Prisma connection logs for authentication issues
 
-### F/M/K Question Issues
-- F/M/K questions use `type: 'fmk'` and `fixedOptions` array
-- Admin interface has separate logic for F/M/K target/action selection
-- Mobile ranking component auto-detects question type
+### Mobile Device Pairing
+- Clear localStorage if pairing fails
+- Verify device token generation and persistence
+- Check that room codes are case-sensitive
 
-### Team vs Individual Submission Confusion
-- Socket events accept EITHER `participantId` OR `teamId` (not both)
-- Device pairing supports both modes with nullable foreign keys
-- Check `/server/socket.ts` for current handling logic
+### Scoring Calculation Errors
+- Ensure all participants have submitted before calculating
+- Verify round status is 'CLOSED' before revealing results
+- Review community ranking algorithm in `lib/utils.ts`
+
+## Recent Architecture Notes
+
+### PostgreSQL Migration
+- Schema updated from SQLite to PostgreSQL for Railway deployment
+- `railway:setup` command runs `prisma db push` to create tables
+- Environment variables auto-injected by Railway services
+- Production deployment requires PostgreSQL connection string
