@@ -640,15 +640,38 @@ export default function AdminDashboard() {
     }, 20000) // Increased from 10 to 20 seconds
   }
 
-  const resetRoundsOnly = () => {
-    if (confirm('Reset rounds only? (Keeps community rankings and teams)')) {
-      const newState = {
-        ...gameState,
-        currentRound: 0,
-        roundStatus: 'waiting' as const
-      }
-      saveGameState(newState)
+  const resetRoundsOnly = async () => {
+    if (!confirm('Reset rounds only? (Keeps community rankings and teams)\n\nThis will refresh all player screens.')) {
+      return
     }
+    
+    // Update database to reset current round
+    try {
+      await fetch('/api/game-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: gameState.roomCode,
+          currentRound: 0,
+          gameState: 'LIVE_EVENT'
+        })
+      })
+    } catch (error) {
+      console.error('Failed to reset round in database:', error)
+    }
+    
+    // Update local state
+    const newState = {
+      ...gameState,
+      currentRound: 0,
+      roundStatus: 'waiting' as const
+    }
+    setGameState(newState)
+    
+    // Broadcast to all players via Socket.IO to reload their game state
+    sendHostAction(gameState.roomCode, '', 'reset-rounds', {})
+    
+    alert('✅ Rounds reset! All player screens will refresh.')
   }
 
   const migrateLocalData = async () => {

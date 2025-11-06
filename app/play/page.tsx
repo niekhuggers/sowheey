@@ -157,6 +157,16 @@ function PlayGameContent() {
       setGameState((prev: any) => prev ? { ...prev, roundStatus: 'completed' } : prev)
     })
     
+    socket.on('rounds-reset', (data: any) => {
+      console.log('🔄 Rounds reset by admin, reloading game state...', data)
+      // Reload the game state from database
+      loadGameState('WEEKEND2024')
+      // Reset submission state
+      setSubmitted(false)
+      setRankings([])
+      setFmkAnswers({})
+    })
+    
     // Join room when socket is connected
     socket.on('connect', () => {
       console.log('Socket connected, joining room WEEKEND2024 with device token')
@@ -170,6 +180,7 @@ function PlayGameContent() {
       socket.off('round-closed')
       socket.off('round-revealed')
       socket.off('game-completed')
+      socket.off('rounds-reset')
       socket.off('connect')
     }
   }, [])

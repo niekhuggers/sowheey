@@ -295,6 +295,22 @@ io.on('connection', (socket) => {
             communityTop3 
           })
           break
+
+        case 'reset-rounds':
+          console.log('🔄 Resetting rounds for room:', data.roomCode)
+          
+          // Update room to round 0
+          await prisma.room.update({
+            where: { id: room.id },
+            data: { currentRound: 0 }
+          })
+          
+          // Broadcast to all players to reload their game state
+          io.to(data.roomCode).emit('rounds-reset', {
+            message: 'Rounds have been reset. Reloading game...'
+          })
+          console.log('✅ Rounds reset broadcast sent')
+          break
       }
     } catch (error) {
       console.error('Host action error:', error)
