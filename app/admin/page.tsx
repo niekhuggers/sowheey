@@ -194,6 +194,12 @@ export default function AdminDashboard() {
         setPrefillAnswers(dbAnswers)
         console.log('Final transformed answers:', dbAnswers)
         console.log('Sample person answers:', dbAnswers['Maurits'])
+        console.log('Current prefillAnswers state after setPrefillAnswers:', dbAnswers)
+        
+        // Test the exact same lookup the UI will use
+        const testPerson = ALL_PEOPLE[0] // First person 
+        const testQuestion = 0 // First question
+        console.log(`UI Test: prefillAnswers[${testPerson}][${testQuestion}] =`, dbAnswers[testPerson]?.[testQuestion])
       } else {
         console.log('No pre-submissions found, using empty answers')
         // Initialize empty answers if no data in database
@@ -948,6 +954,7 @@ export default function AdminDashboard() {
                           <div className="grid grid-cols-3 gap-2">
                             {[0, 1, 2].map(pos => {
                               const currentAnswers = prefillAnswers[ALL_PEOPLE[currentPrefillPerson]]?.[currentPrefillQuestion] || []
+                              console.log(`UI Debug: Person=${ALL_PEOPLE[currentPrefillPerson]}, Question=${currentPrefillQuestion}, Answers=`, currentAnswers)
                               const person = currentAnswers[pos]
                               return (
                                 <div key={pos} className="text-center p-2 border rounded">
