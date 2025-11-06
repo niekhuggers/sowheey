@@ -159,12 +159,21 @@ export default function AdminDashboard() {
     socket.on('disconnect', (reason) => {
       console.log('Admin Socket.IO disconnected:', reason)
     })
+
+    socket.on('round-revealed', (data) => {
+      console.log('Round revealed, refreshing scores:', data)
+      // Reload game state to get updated scores
+      setTimeout(() => {
+        loadGameState()
+      }, 1000) // Small delay to ensure database is updated
+    })
     
     return () => {
       // Clean up socket connection on unmount
       socket.off('connect')
       socket.off('connect_error')
       socket.off('disconnect')
+      socket.off('round-revealed')
       socket.disconnect()
     }
   }, [])
