@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       teams: room.teams.map(team => ({
         id: team.id,
         name: team.name,
-        members: team.members.map(member => member.participant),
+        members: team.members.map(member => member.participant.name),
         totalScore: team.aggregateScores[0]?.totalScore || 0,
         rank: team.aggregateScores[0]?.rank || 0,
       })),

@@ -447,6 +447,10 @@ io.on('connection', (socket) => {
           }
         })
 
+        console.log(`Team ${teamPairing.teamId} pairing check:`)
+        console.log(`  - New device token: ${data.deviceToken}`)
+        console.log(`  - Existing device found: ${existingDevice ? existingDevice.deviceToken : 'none'}`)
+
         if (existingDevice) {
           socket.emit('error', { message: 'This team already has a device paired' })
           return
