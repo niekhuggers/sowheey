@@ -418,6 +418,7 @@ export default function AdminDashboard() {
           const rank3Participant = gameState.participants.find(p => p.name === rankings[2])
           
           if (rank1Participant && rank2Participant && rank3Participant) {
+            console.log('Saving to database:', personName, 'Q' + currentPrefillQuestion, rankings)
             const response = await fetch('/api/admin/pre-submissions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -432,9 +433,13 @@ export default function AdminDashboard() {
               })
             })
             
-            if (!response.ok) {
-              console.error('Failed to save pre-submission to database')
+            if (response.ok) {
+              console.log('✅ Successfully saved to database')
+            } else {
+              console.error('❌ Failed to save to database:', response.status, await response.text())
             }
+          } else {
+            console.error('❌ Could not find all participants for ranking:', rankings)
           }
         }
       } catch (error) {
