@@ -470,8 +470,53 @@ export default function AdminDashboard() {
               setGameState(newState)
             }
           }
+        } else if (response.status === 404) {
+          // WEEKEND2024 room doesn't exist, create it
+          console.log('WEEKEND2024 room not found, creating it...')
+          try {
+            const createResponse = await fetch('/api/rooms', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: 'Friends Weekend Game',
+                code: 'WEEKEND2024',
+                participants: ALL_PEOPLE.map(name => ({
+                  name,
+                  isHost: HOSTS.includes(name),
+                  isGuest: false
+                })),
+                questions: QUESTIONS.map((q, index) => ({
+                  text: q,
+                  category: q.includes('Fuck, Marry, Kill') ? 'special' : 'general',
+                  sortOrder: index
+                }))
+              })
+            })
+            
+            if (createResponse.ok) {
+              const roomData = await createResponse.json()
+              hostToken = roomData.room.hostToken
+              if (hostToken) {
+                localStorage.setItem('hostToken', hostToken)
+              }
+              
+              const newState = {
+                ...gameState,
+                roomId: roomData.room.id,
+                participants: roomData.participants,
+                questions: roomData.questions
+              }
+              setGameState(newState)
+            } else {
+              alert('Failed to create WEEKEND2024 room. Please check the console for errors.')
+              return
+            }
+          } catch (createError) {
+            alert('Error creating WEEKEND2024 room: ' + (createError instanceof Error ? createError.message : 'Unknown error'))
+            return
+          }
         } else {
-          alert('WEEKEND2024 room not found. Please visit /play first to create the room.')
+          alert('Failed to load room data. Please try again.')
           return
         }
       } catch (error) {
