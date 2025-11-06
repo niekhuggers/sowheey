@@ -405,6 +405,7 @@ export default function AdminDashboard() {
 
   const savePrefillAnswer = async (rankings: string[]) => {
     const personName = ALL_PEOPLE[currentPrefillPerson]
+    console.log('🔵 savePrefillAnswer called for:', personName, 'Q' + currentPrefillQuestion, 'rankings:', rankings)
     
     // Update local state first
     const newAnswers = {
@@ -417,7 +418,16 @@ export default function AdminDashboard() {
     setPrefillAnswers(newAnswers)
     
     // Save to database using admin endpoint
+    console.log('🔵 Checking gameState:', {
+      roomCode: gameState.roomCode,
+      hasParticipants: !!gameState.participants,
+      participantCount: gameState.participants?.length,
+      hasQuestions: !!gameState.questions,
+      questionCount: gameState.questions?.length
+    })
+    
     if (gameState.roomCode && gameState.participants && gameState.questions) {
+      console.log('🔵 Entering database save block')
       try {
         const question = gameState.questions[currentPrefillQuestion]
         
