@@ -194,15 +194,36 @@ io.on('connection', (socket) => {
           console.log('🚀 Processing start-round action')
           console.log('Payload:', data.payload)
           
-          const round = await prisma.round.create({
-            data: {
+          // Check if round already exists, if so update it, otherwise create new
+          let round = await prisma.round.findFirst({
+            where: {
               roomId: room.id,
-              questionId: data.payload.questionId,
-              roundNumber: data.payload.roundNumber,
-              status: 'OPEN'
+              roundNumber: data.payload.roundNumber
             }
           })
-          console.log('✅ Round created in database:', round.id)
+          
+          if (round) {
+            console.log('📝 Round already exists, updating status to OPEN')
+            round = await prisma.round.update({
+              where: { id: round.id },
+              data: { 
+                status: 'OPEN',
+                questionId: data.payload.questionId
+              }
+            })
+          } else {
+            console.log('✨ Creating new round')
+            round = await prisma.round.create({
+              data: {
+                roomId: room.id,
+                questionId: data.payload.questionId,
+                roundNumber: data.payload.roundNumber,
+                status: 'OPEN'
+              }
+            })
+          }
+          
+          console.log('✅ Round ready in database:', round.id)
           console.log('📡 Broadcasting round-started to room:', data.roomCode)
           
           io.to(data.roomCode).emit('round-started', round)
