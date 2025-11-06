@@ -442,6 +442,63 @@ export default function AdminDashboard() {
     }
   }
 
+  const migrateLocalData = async () => {
+    if (!gameState.roomId) {
+      alert('Room not set up yet. Please set up game first.')
+      return
+    }
+
+    const hostToken = localStorage.getItem('hostToken')
+    if (!hostToken) {
+      alert('Host token not found. Please reload and try again.')
+      return
+    }
+
+    const friendsWeekendAnswers = localStorage.getItem('friendsWeekendAnswers')
+    const weekendGameState = localStorage.getItem('weekendGameState')
+    
+    let teams: any[] = []
+    if (weekendGameState) {
+      const gameData = JSON.parse(weekendGameState)
+      teams = gameData.teams || []
+    }
+
+    const localData = {
+      friendsWeekendAnswers: friendsWeekendAnswers ? JSON.parse(friendsWeekendAnswers) : null,
+      teams: teams
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch('/api/migrate-local-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: 'WEEKEND2024',
+          hostToken,
+          localData
+        })
+      })
+
+      const result = await response.json()
+      
+      if (response.ok) {
+        alert(`✅ Migration successful!\n${result.message}`)
+        // Optionally clear localStorage after successful migration
+        if (confirm('Clear local storage after successful migration?')) {
+          localStorage.removeItem('friendsWeekendAnswers')
+          localStorage.removeItem('friendsWeekendTeams')
+        }
+      } else {
+        alert(`❌ Migration failed: ${result.error}\nDetails: ${result.details || 'Unknown error'}`)
+      }
+    } catch (error) {
+      alert(`❌ Migration error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const resetGame = () => {
     if (confirm('⚠️ FULL RESET: This will delete ALL LOCAL data including community rankings! Are you sure?')) {
       // Reset local state but keep WEEKEND2024 room in database
@@ -1071,6 +1128,15 @@ export default function AdminDashboard() {
                     className="border-blue-300 hover:bg-blue-50"
                   >
                     🔄 Reset Rounds Only
+                  </Button>
+                  
+                  <Button
+                    variant="secondary"
+                    onClick={migrateLocalData}
+                    disabled={loading}
+                    className="border-green-300 hover:bg-green-50 text-green-700"
+                  >
+                    {loading ? 'Migrating...' : '📥 Migrate Local Data to Database'}
                   </Button>
                   
                   <Button
