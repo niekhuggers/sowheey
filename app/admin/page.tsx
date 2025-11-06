@@ -88,7 +88,6 @@ export default function AdminDashboard() {
   const [adminPassword, setAdminPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [showPrefill, setShowPrefill] = useState(false)
   const [showTeamCreation, setShowTeamCreation] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
   const [newTeamMembers, setNewTeamMembers] = useState<string[]>([])
@@ -158,6 +157,22 @@ export default function AdminDashboard() {
     const savedState = localStorage.getItem('weekendGameState')
     if (savedState) {
       setGameState(JSON.parse(savedState))
+    }
+    
+    // Load existing answers if any
+    const saved = localStorage.getItem('friendsWeekendAnswers')
+    if (saved) {
+      setPrefillAnswers(JSON.parse(saved))
+    } else {
+      // Initialize empty answers
+      const initialAnswers: any = {}
+      ALL_PEOPLE.forEach(person => {
+        initialAnswers[person] = {}
+        QUESTIONS.forEach((_, qIndex) => {
+          initialAnswers[person][qIndex] = []
+        })
+      })
+      setPrefillAnswers(initialAnswers)
     }
   }
 
@@ -309,27 +324,6 @@ export default function AdminDashboard() {
     }
   }
 
-  const startPrefill = () => {
-    // Load existing answers if any
-    const saved = localStorage.getItem('friendsWeekendAnswers')
-    if (saved) {
-      setPrefillAnswers(JSON.parse(saved))
-    } else {
-      // Initialize empty answers
-      const initialAnswers: any = {}
-      ALL_PEOPLE.forEach(person => {
-        initialAnswers[person] = {}
-        QUESTIONS.forEach((_, qIndex) => {
-          initialAnswers[person][qIndex] = []
-        })
-      })
-      setPrefillAnswers(initialAnswers)
-    }
-    
-    setCurrentPrefillPerson(0)
-    setCurrentPrefillQuestion(0)
-    setShowPrefill(true)
-  }
 
   const savePrefillAnswer = async (rankings: string[]) => {
     const personName = ALL_PEOPLE[currentPrefillPerson]
@@ -654,9 +648,8 @@ export default function AdminDashboard() {
             </Card>
 
 
-            {/* Pre-fill Answers Modal */}
-            {showPrefill && (
-              <Card className="mb-6">
+            {/* Pre-fill Answers - Always Visible */}
+            <Card className="mb-6">
                 <CardHeader>
                   <CardTitle>📊 Community Rankings Setup</CardTitle>
                 <p className="text-gray-600">Enter how each person ranks others. Teams will try to guess these community averages during the game!</p>
@@ -870,13 +863,6 @@ export default function AdminDashboard() {
                     
                     <div className="flex space-x-4">
                       <Button
-                        variant="secondary"
-                        onClick={() => setShowPrefill(false)}
-                        className="flex-1"
-                      >
-                        Close
-                      </Button>
-                      <Button
                         onClick={async () => {
                           const currentAnswers = prefillAnswers[ALL_PEOPLE[currentPrefillPerson]]?.[currentPrefillQuestion] || []
                           if (currentAnswers.length === 3) {
@@ -904,7 +890,7 @@ export default function AdminDashboard() {
                                      currentAnswers.every((answer: string) => answer && answer.trim() !== ''))
                           }
                         })()}
-                        className={`flex-1 ${justSaved ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                        className={`w-full ${justSaved ? 'bg-green-600 hover:bg-green-700' : ''}`}
                       >
                         {justSaved ? '✅ Saved!' : 'Save Answer'}
                       </Button>
@@ -912,7 +898,6 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-            )}
 
             {/* Team Creation Modal */}
             {showTeamCreation && (
@@ -1079,14 +1064,6 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 gap-4">
-                  <Button
-                    onClick={startPrefill}
-                    variant={showPrefill ? "secondary" : "primary"}
-                    disabled={showPrefill}
-                    size="lg"
-                  >
-                    {showPrefill ? "📝 Currently Editing Rankings" : "📝 Edit Community Rankings"}
-                  </Button>
                   
                   <Button
                     variant="secondary"

@@ -19,8 +19,8 @@ const io = new Server(httpServer, {
     origin: [
       'http://localhost:3000',
       'https://ranking-the-stars.vercel.app',
-      process.env.NEXT_PUBLIC_APP_URL
-    ].filter(Boolean),
+      ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : [])
+    ],
     methods: ['GET', 'POST']
   }
 })
