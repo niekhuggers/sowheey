@@ -203,7 +203,7 @@ export async function POST(
         },
       })
       
-      const teamScores = teams.map((team) => {
+      const teamAggregateScores = teams.map((team) => {
         const teamTotalScore = team.members.reduce((total, member) => {
           const memberAggregate = aggregates.get(member.participantId)
           return total + (memberAggregate?.totalScore || 0)
@@ -221,9 +221,9 @@ export async function POST(
       })
       
       // Create new team aggregate scores
-      if (teamScores.length > 0) {
+      if (teamAggregateScores.length > 0) {
         await tx.teamAggregateScore.createMany({
-          data: teamScores.map((teamScore, index) => ({
+          data: teamAggregateScores.map((teamScore, index) => ({
             roundId: round.id,
             teamId: teamScore.teamId,
             totalScore: teamScore.totalScore,
