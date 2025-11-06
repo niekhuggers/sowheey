@@ -191,8 +191,8 @@ export default function AdminDashboard() {
   const loadPrefilledAnswersFromDatabase = async (roomData: any) => {
     try {
       // Fetch all pre-submissions for this room
-      console.log('Fetching pre-submissions for roomId:', roomData.id)
-      const response = await fetch(`/api/pre-submissions?roomId=${roomData.id}`)
+      console.log('Fetching pre-submissions for roomId:', roomData.room.id)
+      const response = await fetch(`/api/pre-submissions?roomId=${roomData.room.id}`)
       console.log('Pre-submissions response status:', response.status)
       
       if (response.ok) {
