@@ -134,16 +134,24 @@ export async function POST(request: NextRequest) {
     
     const communityTop3 = await calculateResponse.json()
     testResults.push(`✅ Community ranking calculated`)
-    testResults.push(`🏆 Community Top 3: ${communityTop3.map((p: any) => p.participantId).join(', ')}`)
+    testResults.push(`📊 Community ranking response:`, JSON.stringify(communityTop3))
+    
+    // Handle different response formats
+    const top3Array = Array.isArray(communityTop3) ? communityTop3 : []
+    if (top3Array.length > 0) {
+      testResults.push(`🏆 Community Top 3: ${top3Array.map((p: any) => p.participantId || p.id || 'unknown').join(', ')}`)
+    } else {
+      testResults.push(`⚠️ No community ranking data returned`)
+    }
     
     // Step 8: Reveal results
     await prisma.round.update({
       where: { id: round.id },
       data: { 
         status: 'REVEALED',
-        communityRank1Id: communityTop3[0]?.participantId,
-        communityRank2Id: communityTop3[1]?.participantId,
-        communityRank3Id: communityTop3[2]?.participantId,
+        communityRank1Id: top3Array[0]?.participantId || top3Array[0]?.id,
+        communityRank2Id: top3Array[1]?.participantId || top3Array[1]?.id,
+        communityRank3Id: top3Array[2]?.participantId || top3Array[2]?.id,
         completedAt: new Date()
       }
     })
