@@ -434,7 +434,7 @@ function PlayGameContent() {
           <p className="text-gray-600">{team?.members.join(' + ')} • Room: {gameState.roomCode}</p>
           <Button 
             onClick={clearTeamSelection}
-            variant="outline"
+            variant="secondary"
             size="sm"
             className="mt-2 text-red-600 border-red-200 hover:bg-red-50"
           >
