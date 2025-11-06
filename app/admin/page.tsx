@@ -309,21 +309,8 @@ export default function AdminDashboard() {
       }
     }
     
-    // Load existing answers if any
-    const saved = localStorage.getItem('friendsWeekendAnswers')
-    if (saved) {
-      setPrefillAnswers(JSON.parse(saved))
-    } else {
-      // Initialize empty answers
-      const initialAnswers: any = {}
-      ALL_PEOPLE.forEach(person => {
-        initialAnswers[person] = {}
-        QUESTIONS.forEach((_, qIndex) => {
-          initialAnswers[person][qIndex] = []
-        })
-      })
-      setPrefillAnswers(initialAnswers)
-    }
+    // Data is loaded from database via loadPrefilledAnswersFromDatabase()
+    // No need for localStorage fallback since we migrated to database
   }
 
   const saveGameState = (newState: GameState) => {
