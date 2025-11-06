@@ -164,8 +164,9 @@ export default function AdminDashboard() {
       console.log('Round revealed, refreshing scores:', data)
       // Reload game state to get updated scores
       setTimeout(() => {
+        console.log('Reloading admin state after round revealed...')
         loadGameState()
-      }, 1000) // Small delay to ensure database is updated
+      }, 2000) // Longer delay to ensure database is fully updated
     })
     
     return () => {

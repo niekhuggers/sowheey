@@ -449,6 +449,19 @@ io.on('connection', (socket) => {
           return
         }
 
+        // Check if team already has a device paired
+        const existingDevice = await prisma.device.findFirst({
+          where: { 
+            teamId: teamPairing.teamId,
+            deviceToken: { not: data.deviceToken } // Exclude current device
+          }
+        })
+
+        if (existingDevice) {
+          socket.emit('error', { message: 'This team already has a device paired' })
+          return
+        }
+
         device = await prisma.device.upsert({
           where: { deviceToken: data.deviceToken },
           update: {
