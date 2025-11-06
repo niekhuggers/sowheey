@@ -30,6 +30,11 @@ export async function GET(request: NextRequest) {
               }
             },
             aggregateScores: {
+              where: {
+                round: {
+                  status: 'REVEALED'
+                }
+              },
               orderBy: { roundId: 'desc' },
               take: 1
             }

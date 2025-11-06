@@ -233,7 +233,18 @@ export async function POST(
           })),
         })
       }
+
+      // Mark round as REVEALED
+      await tx.round.update({
+        where: { id: round.id },
+        data: { 
+          status: 'REVEALED',
+          completedAt: new Date()
+        }
+      })
     })
+    
+    console.log(`✅ Round ${round.id} marked as REVEALED and scores calculated`)
     
     return NextResponse.json(communityTop3)
   } catch (error) {
