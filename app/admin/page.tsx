@@ -155,9 +155,14 @@ export default function AdminDashboard() {
   const loadPrefilledAnswersFromDatabase = async (roomData: any) => {
     try {
       // Fetch all pre-submissions for this room
+      console.log('Fetching pre-submissions for roomId:', roomData.id)
       const response = await fetch(`/api/pre-submissions?roomId=${roomData.id}`)
+      console.log('Pre-submissions response status:', response.status)
+      
       if (response.ok) {
         const preSubmissions = await response.json()
+        console.log('Pre-submissions received:', preSubmissions.length, 'items')
+        console.log('Sample pre-submission:', preSubmissions[0])
         
         // Transform database pre-submissions back to the expected format
         const dbAnswers: any = {}
@@ -175,6 +180,8 @@ export default function AdminDashboard() {
           const participantName = submission.participant.name
           const questionIndex = roomData.questions.findIndex((q: any) => q.id === submission.questionId)
           
+          console.log(`Processing submission: ${participantName} for question ${questionIndex}`)
+          
           if (participantName && questionIndex >= 0) {
             dbAnswers[participantName][questionIndex] = [
               submission.rank1Participant.name,
@@ -185,7 +192,8 @@ export default function AdminDashboard() {
         })
         
         setPrefillAnswers(dbAnswers)
-        console.log('Loaded prefilled answers from database:', dbAnswers)
+        console.log('Final transformed answers:', dbAnswers)
+        console.log('Sample person answers:', dbAnswers['Maurits'])
       } else {
         console.log('No pre-submissions found, using empty answers')
         // Initialize empty answers if no data in database
