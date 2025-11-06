@@ -659,17 +659,28 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-sm font-medium mb-2">Select Person:</label>
                       <div className="grid grid-cols-3 gap-2">
-                        {ALL_PEOPLE.map((person, index) => (
-                          <Button
-                            key={person}
-                            variant={currentPrefillPerson === index ? 'primary' : 'secondary'}
-                            onClick={() => setCurrentPrefillPerson(index)}
-                            size="sm"
-                            className={HOSTS.includes(person) ? 'border-yellow-300' : ''}
-                          >
-                            {person} {HOSTS.includes(person) && '👑'}
-                          </Button>
-                        ))}
+                        {ALL_PEOPLE.map((person, index) => {
+                          // Check if all questions are filled for this person
+                          const isPersonComplete = QUESTIONS.every((_, qIndex) => {
+                            const answers = prefillAnswers[person]?.[qIndex] || []
+                            return answers.length === 3 && answers.every((a: string) => a && a.trim() !== '')
+                          })
+                          
+                          return (
+                            <Button
+                              key={person}
+                              variant={currentPrefillPerson === index ? 'primary' : 'secondary'}
+                              onClick={() => setCurrentPrefillPerson(index)}
+                              size="sm"
+                              className={`
+                                ${HOSTS.includes(person) ? 'border-yellow-300' : ''}
+                                ${isPersonComplete ? 'bg-green-100 hover:bg-green-200 border-green-500' : ''}
+                              `}
+                            >
+                              {person} {HOSTS.includes(person) && '👑'} {isPersonComplete && '✓'}
+                            </Button>
+                          )
+                        })}
                       </div>
                     </div>
                     
