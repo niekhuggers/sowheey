@@ -497,10 +497,7 @@ export default function AdminDashboard() {
             
             if (createResponse.ok) {
               const roomData = await createResponse.json()
-              hostToken = roomData.room.hostToken
-              if (hostToken) {
-                localStorage.setItem('hostToken', hostToken)
-              }
+              // hostToken is already set to the fixed value above
               
               const newState = {
                 ...gameState,
