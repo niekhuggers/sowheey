@@ -19,6 +19,7 @@ export async function POST(
             participant: true,
           },
         },
+        question: true,
       },
     })
     
@@ -30,11 +31,35 @@ export async function POST(
       return NextResponse.json({ error: 'Round is not closed' }, { status: 400 })
     }
     
-    // Calculate position scores
-    const positionScores = calculatePositionScores(round.submissions)
+    // Get pre-submissions for this question to determine community ranking
+    const preSubmissions = await prisma.preSubmission.findMany({
+      where: {
+        roomId: round.roomId,
+        questionId: round.questionId,
+      },
+      include: {
+        participant: true,
+        rank1Participant: true,
+        rank2Participant: true,
+        rank3Participant: true,
+      },
+    })
+
+    console.log(`Calculating community ranking from ${preSubmissions.length} pre-submissions for question ${round.questionId}`)
+
+    // Calculate community ranking from pre-submissions (not live submissions!)
+    const preSubmissionRankings = preSubmissions.map(sub => ({
+      rank1Id: sub.rank1ParticipantId,
+      rank2Id: sub.rank2ParticipantId,
+      rank3Id: sub.rank3ParticipantId,
+    }))
+
+    const positionScores = calculatePositionScores(preSubmissionRankings)
     const communityTop3 = determineTop3(positionScores)
     
-    // Calculate individual scores
+    console.log('Community top 3 from pre-submissions:', communityTop3)
+    
+    // Calculate individual scores by comparing live submissions against community ranking
     const scores: { participantId: string; points: number }[] = []
     
     for (const submission of round.submissions) {
@@ -46,6 +71,8 @@ export async function POST(
         },
         communityTop3
       )
+      
+      console.log(`Participant ${submission.participant.name} scored ${points} points for their live submission`)
       
       scores.push({
         participantId: submission.participantId,

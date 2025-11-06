@@ -193,18 +193,63 @@ io.on('connection', (socket) => {
           io.to(data.roomCode).emit('round-closed', closedRound)
           break
 
-        case 'reveal-round':
+        case 'reveal-results':
+          // Get the current active round and close it first
+          const currentRound = await prisma.round.findFirst({
+            where: {
+              room: { code: data.roomCode },
+              status: 'OPEN'
+            },
+            orderBy: { createdAt: 'desc' },
+            include: { question: true }
+          })
+
+          if (!currentRound) {
+            socket.emit('error', { message: 'No active round found to reveal' })
+            return
+          }
+
+          // Close the round first (no more submissions allowed)
+          await prisma.round.update({
+            where: { id: currentRound.id },
+            data: { status: 'CLOSED' }
+          })
+
+          console.log(`Round ${currentRound.id} closed, now calculating results...`)
+
+          // Call the calculate API to determine community ranking and scores
+          console.log(`Calling calculate API for round ${currentRound.id}`)
+          const calculateResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/rounds/${currentRound.id}/calculate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hostToken: room.hostToken })
+          })
+
+          if (!calculateResponse.ok) {
+            console.error('Failed to calculate round results:', await calculateResponse.text())
+            socket.emit('error', { message: 'Failed to calculate results' })
+            return
+          }
+
+          const communityTop3 = await calculateResponse.json()
+          console.log('Community top 3 calculated:', communityTop3)
+
+          // Update round status to REVEALED with community ranking
           const revealedRound = await prisma.round.update({
-            where: { id: data.payload.roundId },
+            where: { id: currentRound.id },
             data: { 
               status: 'REVEALED',
-              communityRank1Id: data.payload.communityRank1Id,
-              communityRank2Id: data.payload.communityRank2Id,
-              communityRank3Id: data.payload.communityRank3Id,
+              communityRank1Id: communityTop3[0]?.participantId,
+              communityRank2Id: communityTop3[1]?.participantId,
+              communityRank3Id: communityTop3[2]?.participantId,
               completedAt: new Date()
             }
           })
-          io.to(data.roomCode).emit('round-revealed', revealedRound)
+
+          io.to(data.roomCode).emit('round-revealed', { 
+            round: revealedRound, 
+            communityTop3 
+          })
           break
       }
     } catch (error) {
