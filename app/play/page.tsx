@@ -267,7 +267,7 @@ function PlayGameContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           teamId: selectedTeamId,
-          deviceToken: token,
+          deviceToken: deviceToken,
           roomCode: 'WEEKEND2024'
         })
       })
