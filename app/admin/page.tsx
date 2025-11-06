@@ -425,8 +425,19 @@ export default function AdminDashboard() {
     }, 10000)
   }
 
+  const resetRoundsOnly = () => {
+    if (confirm('Reset rounds only? (Keeps community rankings and teams)')) {
+      const newState = {
+        ...gameState,
+        currentRound: 0,
+        roundStatus: 'waiting' as const
+      }
+      saveGameState(newState)
+    }
+  }
+
   const resetGame = () => {
-    if (confirm('Weet je zeker dat je het spel wilt resetten?')) {
+    if (confirm('⚠️ FULL RESET: This will delete ALL data including community rankings! Are you sure?')) {
       const newState: GameState = {
         isSetup: false,
         currentRound: 0,
@@ -1085,10 +1096,18 @@ export default function AdminDashboard() {
                   </Button>
                   
                   <Button
+                    variant="secondary"
+                    onClick={resetRoundsOnly}
+                    className="border-blue-300 hover:bg-blue-50"
+                  >
+                    🔄 Reset Rounds Only
+                  </Button>
+                  
+                  <Button
                     variant="danger"
                     onClick={resetGame}
                   >
-                    🔄 Reset Game
+                    ⚠️ Full Reset (Deletes All Data)
                   </Button>
                 </div>
               </CardContent>
