@@ -234,6 +234,12 @@ function PlayGameContent() {
     setTeam(selectedTeam)
   }
 
+  const clearTeamSelection = () => {
+    setTeamId(null)
+    setTeam(null)
+    localStorage.removeItem('selectedTeamId')
+  }
+
   const handlePersonSelect = (person: string) => {
     if (rankings.includes(person)) {
       setRankings(rankings.filter(p => p !== person))
@@ -312,6 +318,8 @@ function PlayGameContent() {
             setSubmitted(false)
             setRankings([])
             setFmkAnswers({})
+            // Also clear team selection when rounds reset
+            clearTeamSelection()
           }
         }
       }
@@ -376,6 +384,16 @@ function PlayGameContent() {
             <h1 className="text-2xl font-bold">👥 Selecteer je Team</h1>
             <p className="text-gray-600">Room: {gameState.roomCode}</p>
             <p className="text-sm text-gray-500">Teams found: {gameState.teams?.length || 0}</p>
+            {process.env.NODE_ENV === 'development' && (
+              <Button 
+                onClick={clearTeamSelection} 
+                variant="secondary" 
+                size="sm"
+                className="mt-2"
+              >
+                🔄 Reset Team Selection (Debug)
+              </Button>
+            )}
           </div>
 
           <div className="space-y-4">
