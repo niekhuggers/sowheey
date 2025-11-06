@@ -152,11 +152,83 @@ export default function AdminDashboard() {
     }
   }
 
-  const loadGameState = () => {
-    // Load existing game state from localStorage
-    const savedState = localStorage.getItem('weekendGameState')
-    if (savedState) {
-      setGameState(JSON.parse(savedState))
+  const loadGameState = async () => {
+    try {
+      // Always try to load WEEKEND2024 room from database first
+      const response = await fetch(`/api/rooms?code=WEEKEND2024`)
+      if (response.ok) {
+        const roomData = await response.json()
+        
+        // Set game state as already setup with weekend room
+        const newState: GameState = {
+          isSetup: true,
+          currentRound: 0,
+          roundStatus: 'waiting',
+          teams: [],
+          roomCode: 'WEEKEND2024',
+          answersPrefilled: false,
+          roomId: roomData.id,
+          participants: roomData.participants,
+          questions: roomData.questions
+        }
+        setGameState(newState)
+        
+        // Load team data from localStorage if exists
+        const savedTeams = localStorage.getItem('friendsWeekendTeams')
+        if (savedTeams) {
+          newState.teams = JSON.parse(savedTeams)
+          setGameState(newState)
+        }
+      } else {
+        // Room doesn't exist yet, create it
+        const createResponse = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'Friends Weekend Game',
+            code: 'WEEKEND2024',
+            participants: ALL_PEOPLE.map(name => ({
+              name,
+              isHost: HOSTS.includes(name),
+              isGuest: false
+            })),
+            questions: QUESTIONS.map((text, index) => ({
+              text,
+              category: text.includes('Fuck, Marry, Kill') ? 'special' : 'general',
+              sortOrder: index
+            }))
+          })
+        })
+        
+        if (createResponse.ok) {
+          const data = await createResponse.json()
+          const newState: GameState = {
+            isSetup: true,
+            currentRound: 0,
+            roundStatus: 'waiting',
+            teams: [],
+            roomCode: 'WEEKEND2024',
+            answersPrefilled: false,
+            roomId: data.room.id,
+            participants: data.participants,
+            questions: data.questions
+          }
+          setGameState(newState)
+        } else {
+          // Fallback to localStorage
+          const savedState = localStorage.getItem('weekendGameState')
+          if (savedState) {
+            setGameState(JSON.parse(savedState))
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading room:', error)
+      // Fallback to localStorage
+      const savedState = localStorage.getItem('weekendGameState')
+      if (savedState) {
+        setGameState(JSON.parse(savedState))
+      }
     }
     
     // Load existing answers if any
@@ -181,68 +253,6 @@ export default function AdminDashboard() {
     localStorage.setItem('weekendGameState', JSON.stringify(newState))
   }
 
-  const setupGame = async () => {
-    setLoading(true)
-    
-    try {
-      // Use fixed room code for consistent weekend games
-      const roomCode = 'WEEKEND2024'
-
-      // Create room and participants in database
-      const setupResponse = await fetch('/api/rooms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Friends Weekend Game',
-          code: roomCode,
-          participants: ALL_PEOPLE.map(name => ({
-            name,
-            isHost: HOSTS.includes(name),
-            isGuest: false
-          })),
-          questions: QUESTIONS.map((text, index) => ({
-            text,
-            category: text.includes('Fuck, Marry, Kill') ? 'special' : 'general',
-            sortOrder: index
-          }))
-        })
-      })
-
-      if (!setupResponse.ok) {
-        throw new Error('Failed to create room')
-      }
-
-      const roomData = await setupResponse.json()
-      
-      // Create standard team division from your screenshot
-      const standardTeams = [
-        { id: 1, name: 'Group 1', members: ['Keith', 'Casper'], score: 0 },
-        { id: 2, name: 'Group 2', members: ['Tim', 'Stijn'], score: 0 },
-        { id: 3, name: 'Group 3', members: ['Maurits', 'Tijn'], score: 0 },
-        { id: 4, name: 'Group 4', members: ['Thijs', 'Yanick'], score: 0 },
-        { id: 5, name: 'Group 5', members: ['Sunny', 'Rutger'], score: 0 }
-      ]
-
-      const newState: GameState = {
-        isSetup: true,
-        currentRound: 0,
-        roundStatus: 'waiting',
-        teams: standardTeams,
-        roomCode,
-        answersPrefilled: false,
-        roomId: roomData.room.id,
-        participants: roomData.participants,
-        questions: roomData.questions
-      }
-
-      saveGameState(newState)
-    } catch (error) {
-      console.error('Error setting up game:', error)
-      alert('Failed to setup game. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const setupTestGame = async () => {
     setLoading(true)
@@ -431,19 +441,33 @@ export default function AdminDashboard() {
   }
 
   const resetGame = () => {
-    if (confirm('⚠️ FULL RESET: This will delete ALL data including community rankings! Are you sure?')) {
+    if (confirm('⚠️ FULL RESET: This will delete ALL LOCAL data including community rankings! Are you sure?')) {
+      // Reset local state but keep WEEKEND2024 room in database
       const newState: GameState = {
-        isSetup: false,
+        isSetup: true,  // Keep as setup since WEEKEND2024 always exists
         currentRound: 0,
         roundStatus: 'waiting',
         teams: [],
-        roomCode: '',
-        answersPrefilled: false
+        roomCode: 'WEEKEND2024',
+        answersPrefilled: false,
+        roomId: gameState.roomId,
+        participants: gameState.participants,
+        questions: gameState.questions
       }
       saveGameState(newState)
       localStorage.removeItem('friendsWeekendAnswers')
       localStorage.removeItem('friendsWeekendTeams')
       setPrefillAnswers({})
+      
+      // Re-initialize empty answers
+      const initialAnswers: any = {}
+      ALL_PEOPLE.forEach(person => {
+        initialAnswers[person] = {}
+        QUESTIONS.forEach((_, qIndex) => {
+          initialAnswers[person][qIndex] = []
+        })
+      })
+      setPrefillAnswers(initialAnswers)
     }
   }
 
@@ -524,52 +548,8 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {!gameState.isSetup ? (
-          /* Game Setup */
-          <Card>
-            <CardHeader>
-              <CardTitle>🚀 Game Setup</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">Weekend Configuration:</h4>
-                <div className="text-sm text-blue-800 space-y-1">
-                  <div><strong>Players:</strong> {PLAYERS.join(', ')}</div>
-                  <div><strong>Hosts:</strong> {HOSTS.join(', ')}</div>
-                  <div><strong>Questions:</strong> {QUESTIONS.length} vragen</div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button
-                  onClick={setupGame}
-                  disabled={loading}
-                  size="lg"
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {loading ? 'Setting up...' : '🎮 Initialize Weekend Game'}
-                </Button>
-                
-                <Button
-                  onClick={() => setupTestGame()}
-                  disabled={loading}
-                  size="lg"
-                  variant="secondary"
-                  className="border-orange-300 hover:bg-orange-50"
-                >
-                  {loading ? 'Setting up...' : '🧪 Create Test Room'}
-                </Button>
-              </div>
-              
-              <div className="text-center text-sm text-gray-600 space-y-1">
-                <p><strong>Weekend Game:</strong> Uses room code WEEKEND2024 with all your friends</p>
-                <p><strong>Test Room:</strong> Creates a separate room for testing game mechanics</p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          /* Game Control */
-          <div className="space-y-6">
+        {/* Always show game control - WEEKEND2024 is permanent */}
+        <div className="space-y-6">
             {/* Game Info */}
             <Card>
               <CardHeader>
@@ -1130,7 +1110,6 @@ export default function AdminDashboard() {
               </Card>
             )}
           </div>
-        )}
       </div>
     </div>
   )
