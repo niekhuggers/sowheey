@@ -289,7 +289,21 @@ function PlayGameContent() {
     }
   }
 
-  const clearTeamSelection = () => {
+  const clearTeamSelection = async () => {
+    try {
+      // Unpair device from team in database
+      await fetch('/api/team-pairing/unpair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceToken: deviceToken
+        })
+      })
+    } catch (error) {
+      console.error('Failed to unpair device:', error)
+    }
+    
+    // Clear local state regardless of API success
     setTeamId(null)
     setTeam(null)
     localStorage.removeItem('selectedTeamId')
