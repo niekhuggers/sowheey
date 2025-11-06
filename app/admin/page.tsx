@@ -285,6 +285,7 @@ export default function AdminDashboard() {
         
         console.log('Loaded game state from database:', gameStateData)
         
+        
         // Map database game state to admin UI state
         const roundStatus = (() => {
           if (gameStateData.room.gameState === 'SETUP' || gameStateData.room.gameState === 'PRE_EVENT') {
@@ -318,43 +319,7 @@ export default function AdminDashboard() {
         // Load prefilled answers from database
         await loadPrefilledAnswersFromDatabase(gameStateData)
       } else {
-        // Room doesn't exist yet, create it
-        const createResponse = await fetch('/api/rooms', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'Friends Weekend Game',
-            code: 'WEEKEND2024',
-            participants: ALL_PEOPLE.map(name => ({
-              name,
-              isHost: HOSTS.includes(name),
-              isGuest: false
-            })),
-            questions: QUESTIONS.map((text, index) => ({
-              text,
-              category: text.includes('Fuck, Marry, Kill') ? 'special' : 'general',
-              sortOrder: index
-            }))
-          })
-        })
-        
-        if (createResponse.ok) {
-          const data = await createResponse.json()
-          const newState: GameState = {
-            isSetup: true,
-            currentRound: 0,
-            roundStatus: 'waiting',
-            teams: [],
-            roomCode: 'WEEKEND2024',
-            answersPrefilled: false,
-            roomId: data.room.id,
-            participants: data.participants,
-            questions: data.questions
-          }
-          setGameState(newState)
-        } else {
-          console.log('Room not found')
-        }
+        console.error('WEEKEND2024 room not found in database')
       }
     } catch (error) {
       console.error('Error loading room:', error)

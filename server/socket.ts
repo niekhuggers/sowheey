@@ -252,7 +252,7 @@ io.on('connection', (socket) => {
           const currentRound = await prisma.round.findFirst({
             where: {
               room: { code: data.roomCode },
-              status: 'OPEN'
+              status: 'ACTIVE'
             },
             orderBy: { createdAt: 'desc' },
             include: { question: true }
