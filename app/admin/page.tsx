@@ -103,9 +103,24 @@ export default function AdminDashboard() {
     let completedAnswers = 0
     
     ALL_PEOPLE.forEach(person => {
-      QUESTIONS.forEach((_, qIndex) => {
-        if (prefillAnswers[person]?.[qIndex]?.length === 3) {
-          completedAnswers++
+      QUESTIONS.forEach((questionText, qIndex) => {
+        const answers = prefillAnswers[person]?.[qIndex] || []
+        
+        // Check if this is a F/M/K question
+        if (questionText.includes('Fuck, Marry, Kill')) {
+          // F/M/K: all 3 positions must be filled with non-empty strings
+          if (answers.length === 3 && 
+              answers[0] && answers[0].trim() !== '' &&
+              answers[1] && answers[1].trim() !== '' && 
+              answers[2] && answers[2].trim() !== '') {
+            completedAnswers++
+          }
+        } else {
+          // Regular questions: need exactly 3 non-empty answers
+          if (answers.length === 3 && 
+              answers.every((answer: string) => answer && answer.trim() !== '')) {
+            completedAnswers++
+          }
         }
       })
     })
@@ -328,18 +343,17 @@ export default function AdminDashboard() {
     // Also save to localStorage as backup
     localStorage.setItem('friendsWeekendAnswers', JSON.stringify(newAnswers))
 
-    // Move to next
+    // Move to next question/person automatically
     if (currentPrefillQuestion < QUESTIONS.length - 1) {
       setCurrentPrefillQuestion(currentPrefillQuestion + 1)
     } else if (currentPrefillPerson < ALL_PEOPLE.length - 1) {
       setCurrentPrefillPerson(currentPrefillPerson + 1)
       setCurrentPrefillQuestion(0)
     } else {
-      // All done!
-      const newState = { ...gameState, answersPrefilled: true }
-      saveGameState(newState)
-      setShowPrefill(false)
-      alert('Alle antwoorden zijn ingevuld!')
+      // Loop back to first person/question instead of closing
+      setCurrentPrefillPerson(0)
+      setCurrentPrefillQuestion(0)
+      alert('Reached the end! You can continue editing or close manually.')
     }
   }
 
@@ -783,7 +797,23 @@ export default function AdminDashboard() {
                             setTimeout(() => setJustSaved(false), 2000)
                           }
                         }}
-                        disabled={(prefillAnswers[ALL_PEOPLE[currentPrefillPerson]]?.[currentPrefillQuestion]?.length || 0) !== 3}
+                        disabled={(() => {
+                          const currentPlayerName = ALL_PEOPLE[currentPrefillPerson]
+                          const currentAnswers = prefillAnswers[currentPlayerName]?.[currentPrefillQuestion] || []
+                          const questionText = QUESTIONS[currentPrefillQuestion]
+                          
+                          if (questionText.includes('Fuck, Marry, Kill')) {
+                            // F/M/K: all 3 positions must be filled
+                            return !(currentAnswers.length === 3 && 
+                                     currentAnswers[0] && currentAnswers[0].trim() !== '' &&
+                                     currentAnswers[1] && currentAnswers[1].trim() !== '' && 
+                                     currentAnswers[2] && currentAnswers[2].trim() !== '')
+                          } else {
+                            // Regular: exactly 3 non-empty answers
+                            return !(currentAnswers.length === 3 && 
+                                     currentAnswers.every((answer: string) => answer && answer.trim() !== ''))
+                          }
+                        })()}
                         className={`flex-1 ${justSaved ? 'bg-green-600 hover:bg-green-700' : ''}`}
                       >
                         {justSaved ? '✅ Saved!' : 'Save Answer'}
