@@ -422,34 +422,44 @@ export default function AdminDashboard() {
         const question = gameState.questions[currentPrefillQuestion]
         
         if (question && rankings.length === 3) {
-          // Convert ranking names to participant IDs
-          const rank1Participant = gameState.participants.find(p => p.name === rankings[0])
-          const rank2Participant = gameState.participants.find(p => p.name === rankings[1])
-          const rank3Participant = gameState.participants.find(p => p.name === rankings[2])
+          // Check if this is the FMK question (last question)
+          const isFMKQuestion = currentPrefillQuestion === QUESTIONS.length - 1
           
-          if (rank1Participant && rank2Participant && rank3Participant) {
-            console.log('Saving to database:', personName, 'Q' + currentPrefillQuestion, rankings)
-            const response = await fetch('/api/admin/pre-submissions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                roomCode: gameState.roomCode,
-                hostToken: 'weekend2024-admin-token',
-                participantName: personName,
-                questionId: question.id,
-                rank1ParticipantId: rank1Participant.id,
-                rank2ParticipantId: rank2Participant.id,
-                rank3ParticipantId: rank3Participant.id,
-              })
-            })
-            
-            if (response.ok) {
-              console.log('✅ Successfully saved to database')
-            } else {
-              console.error('❌ Failed to save to database:', response.status, await response.text())
-            }
+          if (isFMKQuestion) {
+            // For FMK question, save the literal names (Aylin, Keone, Ceana) as special entries
+            console.log('Saving FMK answers to database:', personName, 'Q' + currentPrefillQuestion, rankings)
+            // For now, skip saving FMK to database since it needs special handling
+            console.log('FMK answers need special database handling - skipping for now')
           } else {
-            console.error('❌ Could not find all participants for ranking:', rankings)
+            // Convert ranking names to participant IDs for regular questions
+            const rank1Participant = gameState.participants.find(p => p.name === rankings[0])
+            const rank2Participant = gameState.participants.find(p => p.name === rankings[1])
+            const rank3Participant = gameState.participants.find(p => p.name === rankings[2])
+            
+            if (rank1Participant && rank2Participant && rank3Participant) {
+              console.log('Saving to database:', personName, 'Q' + currentPrefillQuestion, rankings)
+              const response = await fetch('/api/admin/pre-submissions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  roomCode: gameState.roomCode,
+                  hostToken: 'weekend2024-admin-token',
+                  participantName: personName,
+                  questionId: question.id,
+                  rank1ParticipantId: rank1Participant.id,
+                  rank2ParticipantId: rank2Participant.id,
+                  rank3ParticipantId: rank3Participant.id,
+                })
+              })
+              
+              if (response.ok) {
+                console.log('✅ Successfully saved to database')
+              } else {
+                console.error('❌ Failed to save to database:', response.status, await response.text())
+              }
+            } else {
+              console.error('❌ Could not find all participants for ranking:', rankings)
+            }
           }
         }
       } catch (error) {

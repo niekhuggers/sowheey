@@ -120,9 +120,9 @@ function PlayGameContent() {
     const socket = getSocket()
     
     // Listen for round events
-    socket.on('round-started', (round) => {
+    socket.on('round-started', (round: any) => {
       console.log('Round started:', round)
-      setGameState(prev => prev ? { 
+      setGameState((prev: any) => prev ? { 
         ...prev, 
         roundStatus: 'active',
         currentRound: round.roundNumber - 1 
@@ -132,19 +132,19 @@ function PlayGameContent() {
       setFmkAnswers({})
     })
     
-    socket.on('round-closed', (round) => {
+    socket.on('round-closed', (round: any) => {
       console.log('Round closed:', round)
-      setGameState(prev => prev ? { ...prev, roundStatus: 'revealing' } : prev)
+      setGameState((prev: any) => prev ? { ...prev, roundStatus: 'revealing' } : prev)
     })
     
-    socket.on('round-revealed', (round) => {
+    socket.on('round-revealed', (round: any) => {
       console.log('Round revealed:', round)
-      setGameState(prev => prev ? { ...prev, roundStatus: 'revealing' } : prev)
+      setGameState((prev: any) => prev ? { ...prev, roundStatus: 'revealing' } : prev)
     })
     
     socket.on('game-completed', () => {
       console.log('Game completed')
-      setGameState(prev => prev ? { ...prev, roundStatus: 'completed' } : prev)
+      setGameState((prev: any) => prev ? { ...prev, roundStatus: 'completed' } : prev)
     })
     
     // Join room when socket is connected
