@@ -191,11 +191,22 @@ export default function AdminDashboard() {
           console.log(`Processing submission: ${participantName} for question ${questionIndex}`)
           
           if (participantName && questionIndex >= 0) {
-            dbAnswers[participantName][questionIndex] = [
-              submission.rank1Participant.name,
-              submission.rank2Participant.name,
-              submission.rank3Participant.name
-            ]
+            // Check if this is the FMK question (last question)
+            const isFMKQuestion = questionIndex === QUESTIONS.length - 1
+            
+            if (isFMKQuestion && submission.rank1ParticipantId === submission.participantId &&
+                submission.rank2ParticipantId === submission.participantId &&
+                submission.rank3ParticipantId === submission.participantId) {
+              // This is a FMK placeholder submission - for now just use hardcoded values
+              // In a real implementation, we'd store FMK data differently
+              dbAnswers[participantName][questionIndex] = ['Aylin', 'Keone', 'Ceana']
+            } else {
+              dbAnswers[participantName][questionIndex] = [
+                submission.rank1Participant.name,
+                submission.rank2Participant.name,
+                submission.rank3Participant.name
+              ]
+            }
           }
         })
         
@@ -438,8 +449,24 @@ export default function AdminDashboard() {
           if (isFMKQuestion) {
             // For FMK question, save the literal names (Aylin, Keone, Ceana) as special entries
             console.log('Saving FMK answers to database:', personName, 'Q' + currentPrefillQuestion, rankings)
-            // For now, skip saving FMK to database since it needs special handling
-            console.log('FMK answers need special database handling - skipping for now')
+            
+            const response = await fetch('/api/admin/pre-submissions-fmk', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                roomCode: gameState.roomCode,
+                hostToken: 'weekend2024-admin-token',
+                participantName: personName,
+                questionId: question.id,
+                fmkAnswers: rankings, // [F person, M person, K person]
+              })
+            })
+            
+            if (response.ok) {
+              console.log('✅ Successfully saved FMK answers to database')
+            } else {
+              console.error('❌ Failed to save FMK answers to database:', response.status, await response.text())
+            }
           } else {
             // Convert ranking names to participant IDs for regular questions
             const rank1Participant = gameState.participants.find(p => p.name === rankings[0])
