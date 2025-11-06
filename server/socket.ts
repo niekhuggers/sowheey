@@ -18,7 +18,8 @@ const io = new Server(httpServer, {
   cors: {
     origin: [
       'http://localhost:3000',
-      'https://ranking-the-stars.vercel.app',
+      'https://ranking-the-stars-drab.vercel.app',
+      'https://sowheey-production.up.railway.app',
       ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : [])
     ],
     methods: ['GET', 'POST']
