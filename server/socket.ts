@@ -194,6 +194,15 @@ io.on('connection', (socket) => {
           console.log('🚀 Processing start-round action')
           console.log('Payload:', data.payload)
           
+          // Update room to LIVE_EVENT state and set current round
+          await prisma.room.update({
+            where: { id: room.id },
+            data: {
+              gameState: 'LIVE_EVENT',
+              currentRound: data.payload.roundNumber - 1 // 0-indexed
+            }
+          })
+          
           // Check if round already exists, if so update it, otherwise create new
           let round = await prisma.round.findFirst({
             where: {
@@ -203,11 +212,11 @@ io.on('connection', (socket) => {
           })
           
           if (round) {
-            console.log('📝 Round already exists, updating status to OPEN')
+            console.log('📝 Round already exists, updating status to ACTIVE')
             round = await prisma.round.update({
               where: { id: round.id },
               data: { 
-                status: 'OPEN',
+                status: 'ACTIVE',
                 questionId: data.payload.questionId
               }
             })
@@ -218,7 +227,7 @@ io.on('connection', (socket) => {
                 roomId: room.id,
                 questionId: data.payload.questionId,
                 roundNumber: data.payload.roundNumber,
-                status: 'OPEN'
+                status: 'ACTIVE'
               }
             })
           }

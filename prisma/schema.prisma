@@ -16,6 +16,9 @@ model Room {
   rosterLocked      Boolean          @default(false)
   teamsLocked       Boolean          @default(false)
   preEventLocked    Boolean          @default(false)
+  gameState         String           @default("SETUP") // SETUP, PRE_EVENT, LIVE_EVENT, COMPLETED
+  currentRound      Int              @default(0)
+  totalRounds       Int              @default(15)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -146,7 +149,7 @@ model Round {
   questionId        String
   question          Question         @relation(fields: [questionId], references: [id])
   roundNumber       Int
-  status            String           @default("WAITING")
+  status            String           @default("WAITING") // WAITING, ACTIVE, CLOSED, REVEALED
   communityRank1Id  String?
   communityRank2Id  String?
   communityRank3Id  String?

@@ -278,35 +278,45 @@ export default function AdminDashboard() {
 
   const loadGameState = async () => {
     try {
-      // Always try to load WEEKEND2024 room from database first  
-      const response = await fetch(`/api/rooms?code=WEEKEND2024&hostToken=weekend2024-admin-token`)
+      // Load complete game state from new API
+      const response = await fetch(`/api/game-state?roomCode=WEEKEND2024&hostToken=weekend2024-admin-token`)
       if (response.ok) {
-        const roomData = await response.json()
+        const gameStateData = await response.json()
         
-        // Transform database teams to match expected format
-        const teams = roomData.teams?.map((team: any) => ({
-          id: team.id,
-          name: team.name,
-          members: team.members.map((member: any) => member.participant.name),
-          score: team.aggregateScores?.[0]?.totalScore || 0
-        })) || []
+        console.log('Loaded game state from database:', gameStateData)
         
-        // Set game state as already setup with weekend room
+        // Map database game state to admin UI state
+        const roundStatus = (() => {
+          if (gameStateData.room.gameState === 'SETUP' || gameStateData.room.gameState === 'PRE_EVENT') {
+            return 'waiting'
+          }
+          
+          const currentRound = gameStateData.rounds[gameStateData.room.currentRound]
+          if (!currentRound) return 'waiting'
+          
+          switch (currentRound.status) {
+            case 'ACTIVE': return 'active'
+            case 'CLOSED': return 'revealing'
+            case 'REVEALED': return 'waiting' // Ready for next round
+            default: return 'waiting'
+          }
+        })()
+        
         const newState: GameState = {
           isSetup: true,
-          currentRound: 0,
-          roundStatus: 'waiting',
-          teams: teams,
-          roomCode: 'WEEKEND2024',
-          answersPrefilled: true, // Data is now in database
-          roomId: roomData.id,
-          participants: roomData.participants,
-          questions: roomData.questions
+          currentRound: gameStateData.room.currentRound,
+          roundStatus: roundStatus as any,
+          teams: gameStateData.teams,
+          roomCode: gameStateData.room.code,
+          answersPrefilled: gameStateData.room.gameState !== 'SETUP',
+          roomId: gameStateData.room.id,
+          participants: gameStateData.participants,
+          questions: gameStateData.questions
         }
         setGameState(newState)
         
-        // Load prefilled answers from database instead of localStorage
-        await loadPrefilledAnswersFromDatabase(roomData)
+        // Load prefilled answers from database
+        await loadPrefilledAnswersFromDatabase(gameStateData)
       } else {
         // Room doesn't exist yet, create it
         const createResponse = await fetch('/api/rooms', {
