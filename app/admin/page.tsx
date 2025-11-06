@@ -447,83 +447,8 @@ export default function AdminDashboard() {
     const hostToken = 'weekend2024-admin-token'
     localStorage.setItem('hostToken', hostToken)
     
-    // Always ensure WEEKEND2024 room exists
-    if (!gameState.roomId) {
-      try {
-        const response = await fetch('/api/rooms?code=WEEKEND2024')
-        if (response.ok) {
-          const roomData = await response.json()
-          if (roomData.hostToken) {
-            // hostToken is already set to the fixed value above - no need to reassign
-            
-            // Update gameState if needed
-            if (!gameState.roomId) {
-              const newState = {
-                ...gameState,
-                roomId: roomData.id,
-                participants: roomData.participants,
-                questions: roomData.questions
-              }
-              setGameState(newState)
-            }
-          }
-        } else if (response.status === 404) {
-          // WEEKEND2024 room doesn't exist, create it
-          console.log('WEEKEND2024 room not found, creating it...')
-          try {
-            const createResponse = await fetch('/api/rooms', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                name: 'Friends Weekend Game',
-                code: 'WEEKEND2024',
-                hostToken: 'weekend2024-admin-token', // Fixed host token
-                participants: ALL_PEOPLE.map(name => ({
-                  name,
-                  isHost: HOSTS.includes(name),
-                  isGuest: false
-                })),
-                questions: QUESTIONS.map((q, index) => ({
-                  text: q,
-                  category: q.includes('Fuck, Marry, Kill') ? 'special' : 'general',
-                  sortOrder: index
-                }))
-              })
-            })
-            
-            if (createResponse.ok) {
-              const roomData = await createResponse.json()
-              // hostToken is already set to the fixed value above
-              
-              const newState = {
-                ...gameState,
-                roomId: roomData.room.id,
-                participants: roomData.participants,
-                questions: roomData.questions
-              }
-              setGameState(newState)
-            } else {
-              alert('Failed to create WEEKEND2024 room. Please check the console for errors.')
-              return
-            }
-          } catch (createError) {
-            alert('Error creating WEEKEND2024 room: ' + (createError instanceof Error ? createError.message : 'Unknown error'))
-            return
-          }
-        } else {
-          alert('Failed to load room data. Please try again.')
-          return
-        }
-      } catch (error) {
-        alert('Failed to load room data. Please try again.')
-        return
-      }
-    }
-
-    if (!hostToken) {
-      alert('Host token not found. Please reload and try again.')
-      return
-    }
+    // Skip complex room loading - just proceed with migration using hardcoded room code
+    // The migration API will handle room validation
 
     const friendsWeekendAnswers = localStorage.getItem('friendsWeekendAnswers')
     const weekendGameState = localStorage.getItem('weekendGameState')
