@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id                String           @id @default(cuid())
+  name              String
+  code              String           @unique
+  hostToken         String           @unique
+  isActive          Boolean          @default(true)
+  rosterLocked      Boolean          @default(false)
+  teamsLocked       Boolean          @default(false)
+  preEventLocked    Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  participants      Participant[]
+  teams             Team[]
+  questions         Question[]
+  rounds            Round[]
+  devices           Device[]
+  preSubmissions    PreSubmission[]
+  teamPairingCodes  TeamPairingCode[]
+}
+
+model Participant {
+  id                String           @id @default(cuid())
+  roomId            String
+  room              Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  name              String
+  avatarUrl         String?
+  inviteToken       String           @unique
+  isGuest           Boolean          @default(false)
+  isHost            Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+
+  teamMemberships   TeamMember[]
+  submissions       Submission[]
+  scores            Score[]
+  aggregateScores   AggregateScore[]
+  devices           Device[]
+  preSubmissions    PreSubmission[]
+  
+  rankedInPreSubmissions1 PreSubmission[] @relation("PreSubmissionRank1")
+  rankedInPreSubmissions2 PreSubmission[] @relation("PreSubmissionRank2")
+  rankedInPreSubmissions3 PreSubmission[] @relation("PreSubmissionRank3")
+
+  @@unique([roomId, name])
+}
+
+model PreSubmission {
+  id                    String       @id @default(cuid())
+  roomId                String
+  room                  Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  participantId         String
+  participant           Participant  @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  questionId            String
+  question              Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  rank1ParticipantId    String
+  rank1Participant      Participant  @relation("PreSubmissionRank1", fields: [rank1ParticipantId], references: [id])
+  rank2ParticipantId    String
+  rank2Participant      Participant  @relation("PreSubmissionRank2", fields: [rank2ParticipantId], references: [id])
+  rank3ParticipantId    String
+  rank3Participant      Participant  @relation("PreSubmissionRank3", fields: [rank3ParticipantId], references: [id])
+  
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@unique([participantId, questionId])
+}
+
+model Device {
+  id                String       @id @default(cuid())
+  roomId            String
+  room              Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  participantId     String?
+  participant       Participant? @relation(fields: [participantId], references: [id])
+  teamId            String?
+  team              Team?        @relation(fields: [teamId], references: [id])
+  deviceToken       String       @unique
+  lastSeenAt        DateTime     @default(now())
+  createdAt         DateTime     @default(now())
+}
+
+model Team {
+  id                String           @id @default(cuid())
+  roomId            String
+  room              Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  name              String
+  createdAt         DateTime         @default(now())
+
+  members           TeamMember[]
+  aggregateScores   TeamAggregateScore[]
+  devices           Device[]
+  pairingCodes      TeamPairingCode[]
+
+  @@unique([roomId, name])
+}
+
+model TeamMember {
+  id                String       @id @default(cuid())
+  teamId            String
+  team              Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  participantId     String
+  participant       Participant  @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime     @default(now())
+
+  @@unique([teamId, participantId])
+}
+
+model TeamPairingCode {
+  id                String       @id @default(cuid())
+  roomId            String
+  room              Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  teamId            String
+  team              Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  code              String       @unique
+  expiresAt         DateTime
+  used              Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+}
+
+model Question {
+  id                String           @id @default(cuid())
+  roomId            String
+  room              Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  text              String
+  category          String?
+  sortOrder         Int
+  createdAt         DateTime         @default(now())
+
+  rounds            Round[]
+  preSubmissions    PreSubmission[]
+}
+
+model Round {
+  id                String           @id @default(cuid())
+  roomId            String
+  room              Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  questionId        String
+  question          Question         @relation(fields: [questionId], references: [id])
+  roundNumber       Int
+  status            String           @default("WAITING")
+  communityRank1Id  String?
+  communityRank2Id  String?
+  communityRank3Id  String?
+  createdAt         DateTime         @default(now())
+  completedAt       DateTime?
+
+  submissions       Submission[]
+  scores            Score[]
+  aggregateScores   AggregateScore[]
+  teamAggregateScores TeamAggregateScore[]
+
+  @@unique([roomId, roundNumber])
+}
+
+model Submission {
+  id                String       @id @default(cuid())
+  roundId           String
+  round             Round        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  participantId     String
+  participant       Participant  @relation(fields: [participantId], references: [id])
+  rank1Id           String
+  rank2Id           String
+  rank3Id           String
+  submittedAt       DateTime     @default(now())
+
+  @@unique([roundId, participantId])
+}
+
+model Score {
+  id                String       @id @default(cuid())
+  roundId           String
+  round             Round        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  participantId     String
+  participant       Participant  @relation(fields: [participantId], references: [id])
+  points            Int
+  createdAt         DateTime     @default(now())
+
+  @@unique([roundId, participantId])
+}
+
+model AggregateScore {
+  id                String       @id @default(cuid())
+  roundId           String
+  round             Round        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  participantId     String
+  participant       Participant  @relation(fields: [participantId], references: [id])
+  totalScore        Int
+  rank              Int
+  createdAt         DateTime     @default(now())
+
+  @@unique([roundId, participantId])
+}
+
+model TeamAggregateScore {
+  id                String       @id @default(cuid())
+  roundId           String
+  round             Round        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  teamId            String
+  team              Team         @relation(fields: [teamId], references: [id])
+  totalScore        Int
+  rank              Int
+  createdAt         DateTime     @default(now())
+
+  @@unique([roundId, teamId])
+}
+
+model RoomTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  hostToken   String   // To identify who owns this template
+  participantsJson String // JSON string of {name: string, isHost: boolean}[]
+  isWeekendMode Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+

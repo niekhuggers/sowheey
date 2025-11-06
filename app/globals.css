@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  color: #000000;
+  background: #ffffff;
+  font-family: inherit;
+}
+
+/* Ensure all text is dark by default */
+h1, h2, h3, h4, h5, h6, p, span, div, button, input, select, textarea {
+  color: inherit;
+}
+
+/* Make sure buttons have proper contrast */
+button {
+  color: inherit;
+}
+
+/* Override any problematic Tailwind defaults */
+.text-gray-600 {
+  color: #4b5563 !important;
+}
+
+.text-gray-500 {
+  color: #6b7280 !important;
+}
+
+.text-gray-400 {
+  color: #9ca3af !important;
+}
