@@ -551,7 +551,35 @@ function PlayGameContent() {
                   </div>
                 </div>
 
-                {/* TODO: Show team's score from database instead of localStorage */}
+                {/* Your Team's Answer */}
+                {rankings.length > 0 && (
+                  <div className="border-t pt-4">
+                    <h3 className="font-medium mb-2">Your Team's Answer:</h3>
+                    <div className="space-y-1">
+                      {rankings.slice(0, 3).map((person, index) => (
+                        <div key={person} className="flex items-center justify-center space-x-2">
+                          <span className="text-lg">{index + 1}.</span>
+                          <span className="font-medium">{person}</span>
+                          {HOSTS.includes(person) && <span>👑</span>}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Calculate and show score */}
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                      <div className="text-lg font-bold text-blue-700">
+                        Points: {(() => {
+                          const communityRanking = calculateCommunityRanking(gameState.currentRound, null)
+                          const teamScore = calculateTeamScore(rankings.slice(0, 3), communityRanking)
+                          return teamScore
+                        })()}
+                      </div>
+                      <div className="text-sm text-blue-600">
+                        +1 for each person in community top 3, +2 bonus for exact position
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="text-sm text-gray-600">
                   Next round starting soon...
