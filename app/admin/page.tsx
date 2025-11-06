@@ -160,6 +160,16 @@ export default function AdminDashboard() {
       console.log('Admin Socket.IO disconnected:', reason)
     })
 
+    socket.on('round-started', (round: any) => {
+      console.log('🚀 Round started event received:', round)
+      // Update admin state to reflect the new round
+      setGameState((prev: any) => prev ? {
+        ...prev,
+        currentRound: round.roundNumber - 1,
+        roundStatus: 'active' as const
+      } : prev)
+    })
+    
     socket.on('round-revealed', (data) => {
       console.log('Round revealed, refreshing scores:', data)
       // Reload game state to get updated scores
@@ -174,6 +184,7 @@ export default function AdminDashboard() {
       socket.off('connect')
       socket.off('connect_error')
       socket.off('disconnect')
+      socket.off('round-started')
       socket.off('round-revealed')
       socket.disconnect()
     }
@@ -584,18 +595,13 @@ export default function AdminDashboard() {
     console.log('Question:', gameState.questions[gameState.currentRound])
     
     // Send Socket.IO host action to start round
+    // The round-started event listener will update the state
     sendHostAction(gameState.roomCode, '', 'start-round', {
       questionId: gameState.questions[gameState.currentRound].id,
       roundNumber: gameState.currentRound + 1
     })
     
-    // Also update local state for immediate UI feedback
-    const newState = {
-      ...gameState,
-      roundStatus: 'active' as const
-    }
-    setGameState(newState)
-    console.log('✅ Local state updated to active')
+    console.log('✅ Round start command sent, waiting for confirmation...')
   }
 
   const manualNextRound = async () => {
