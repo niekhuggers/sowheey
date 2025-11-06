@@ -39,7 +39,7 @@ npm install && npx prisma generate
 
 ### Start Command:
 ```bash
-npm run socket:prod
+npm run start:socket
 ```
 
 ### Important Settings:
