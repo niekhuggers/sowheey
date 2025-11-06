@@ -131,20 +131,22 @@ function PlayGameContent() {
       if (response.ok) {
         const roomData = await response.json()
         
-        // Load teams from localStorage
-        const savedTeams = localStorage.getItem('friendsWeekendTeams')
+        // Load teams from database
         let teams = []
-        if (savedTeams) {
-          teams = JSON.parse(savedTeams)
-        } else {
-          // Default teams if none saved
-          teams = [
-            { id: 1, name: 'Group 1', members: ['Keith', 'Casper'], score: 0 },
-            { id: 2, name: 'Group 2', members: ['Tim', 'Stijn'], score: 0 },
-            { id: 3, name: 'Group 3', members: ['Maurits', 'Tijn'], score: 0 },
-            { id: 4, name: 'Group 4', members: ['Thijs', 'Yanick'], score: 0 },
-            { id: 5, name: 'Group 5', members: ['Sunny', 'Rutger'], score: 0 }
-          ]
+        try {
+          const teamsResponse = await fetch(`/api/teams?roomId=${roomData.id}`)
+          if (teamsResponse.ok) {
+            const teamsData = await teamsResponse.json()
+            // Transform database teams to match expected format
+            teams = teamsData.map((team: any) => ({
+              id: team.id,
+              name: team.name,
+              members: team.members.map((member: any) => member.participant.name),
+              score: team.aggregateScores?.[0]?.totalScore || 0
+            }))
+          }
+        } catch (error) {
+          console.error('Error loading teams:', error)
         }
         
         const gameState = {
