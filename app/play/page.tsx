@@ -432,6 +432,14 @@ function PlayGameContent() {
         <div className="text-center mb-6">
           <h1 className="text-xl font-bold">{team?.name}</h1>
           <p className="text-gray-600">{team?.members.join(' + ')} • Room: {gameState.roomCode}</p>
+          <Button 
+            onClick={clearTeamSelection}
+            variant="outline"
+            size="sm"
+            className="mt-2 text-red-600 border-red-200 hover:bg-red-50"
+          >
+            🚪 Leave Team
+          </Button>
         </div>
 
         {gameState.roundStatus === 'waiting' && (
