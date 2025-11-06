@@ -152,33 +152,97 @@ export default function AdminDashboard() {
     }
   }
 
+  const loadPrefilledAnswersFromDatabase = async (roomData: any) => {
+    try {
+      // Fetch all pre-submissions for this room
+      const response = await fetch(`/api/pre-submissions?roomId=${roomData.id}`)
+      if (response.ok) {
+        const preSubmissions = await response.json()
+        
+        // Transform database pre-submissions back to the expected format
+        const dbAnswers: any = {}
+        
+        // Initialize empty structure for all people
+        ALL_PEOPLE.forEach(person => {
+          dbAnswers[person] = {}
+          QUESTIONS.forEach((_, qIndex) => {
+            dbAnswers[person][qIndex] = []
+          })
+        })
+        
+        // Fill in actual pre-submission data
+        preSubmissions.forEach((submission: any) => {
+          const participantName = submission.participant.name
+          const questionIndex = roomData.questions.findIndex((q: any) => q.id === submission.questionId)
+          
+          if (participantName && questionIndex >= 0) {
+            dbAnswers[participantName][questionIndex] = [
+              submission.rank1Participant.name,
+              submission.rank2Participant.name,
+              submission.rank3Participant.name
+            ]
+          }
+        })
+        
+        setPrefillAnswers(dbAnswers)
+        console.log('Loaded prefilled answers from database:', dbAnswers)
+      } else {
+        console.log('No pre-submissions found, using empty answers')
+        // Initialize empty answers if no data in database
+        const initialAnswers: any = {}
+        ALL_PEOPLE.forEach(person => {
+          initialAnswers[person] = {}
+          QUESTIONS.forEach((_, qIndex) => {
+            initialAnswers[person][qIndex] = []
+          })
+        })
+        setPrefillAnswers(initialAnswers)
+      }
+    } catch (error) {
+      console.error('Error loading prefilled answers from database:', error)
+      // Fallback to empty answers
+      const initialAnswers: any = {}
+      ALL_PEOPLE.forEach(person => {
+        initialAnswers[person] = {}
+        QUESTIONS.forEach((_, qIndex) => {
+          initialAnswers[person][qIndex] = []
+        })
+      })
+      setPrefillAnswers(initialAnswers)
+    }
+  }
+
   const loadGameState = async () => {
     try {
-      // Always try to load WEEKEND2024 room from database first
-      const response = await fetch(`/api/rooms?code=WEEKEND2024`)
+      // Always try to load WEEKEND2024 room from database first  
+      const response = await fetch(`/api/rooms?code=WEEKEND2024&hostToken=weekend2024-admin-token`)
       if (response.ok) {
         const roomData = await response.json()
+        
+        // Transform database teams to match expected format
+        const teams = roomData.teams?.map((team: any) => ({
+          id: team.id,
+          name: team.name,
+          members: team.members.map((member: any) => member.participant.name),
+          score: team.aggregateScores?.[0]?.totalScore || 0
+        })) || []
         
         // Set game state as already setup with weekend room
         const newState: GameState = {
           isSetup: true,
           currentRound: 0,
           roundStatus: 'waiting',
-          teams: [],
+          teams: teams,
           roomCode: 'WEEKEND2024',
-          answersPrefilled: false,
+          answersPrefilled: true, // Data is now in database
           roomId: roomData.id,
           participants: roomData.participants,
           questions: roomData.questions
         }
         setGameState(newState)
         
-        // Load team data from localStorage if exists
-        const savedTeams = localStorage.getItem('friendsWeekendTeams')
-        if (savedTeams) {
-          newState.teams = JSON.parse(savedTeams)
-          setGameState(newState)
-        }
+        // Load prefilled answers from database instead of localStorage
+        await loadPrefilledAnswersFromDatabase(roomData)
       } else {
         // Room doesn't exist yet, create it
         const createResponse = await fetch('/api/rooms', {

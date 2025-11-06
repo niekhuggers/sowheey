@@ -15,6 +15,40 @@ const submitPreEventSchema = z.object({
   ),
 })
 
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const roomId = searchParams.get('roomId')
+  
+  if (!roomId) {
+    return NextResponse.json({ error: 'Room ID required' }, { status: 400 })
+  }
+  
+  try {
+    const preSubmissions = await prisma.preSubmission.findMany({
+      where: { roomId },
+      include: {
+        participant: true,
+        rank1Participant: true,
+        rank2Participant: true,
+        rank3Participant: true,
+        question: true
+      },
+      orderBy: [
+        { participant: { name: 'asc' } },
+        { question: { sortOrder: 'asc' } }
+      ]
+    })
+    
+    return NextResponse.json(preSubmissions)
+  } catch (error) {
+    console.error('Error fetching pre-submissions:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch pre-submissions' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
