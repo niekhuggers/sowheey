@@ -6,7 +6,7 @@ export default function Home() {
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm">
         <div className="text-center space-y-8">
           <div>
-            <h1 className="text-5xl font-bold mb-4">🌟 Ranking the Stars</h1>
+            <h1 className="text-5xl font-bold mb-4">🌟 Ranking the Stars - Live!</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Welcome to het vrienden weekend! 
               Join the ranking game en laat zien wie de beste is! 🏆
