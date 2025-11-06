@@ -113,19 +113,16 @@ function PlayGameContent() {
   const [team, setTeam] = useState<any>(null)
 
   useEffect(() => {
-    // Check if room code provided in URL
-    const codeFromUrl = searchParams.get('code')
-    if (codeFromUrl) {
-      setRoomCode(codeFromUrl)
-      loadGameState(codeFromUrl)
-    }
+    // Always auto-join WEEKEND2024 - this app is only for this room
+    setRoomCode('WEEKEND2024')
+    loadGameState('WEEKEND2024')
 
     // Check if team already selected
     const savedTeamId = localStorage.getItem('selectedTeamId')
     if (savedTeamId) {
       setTeamId(parseInt(savedTeamId))
     }
-  }, [searchParams])
+  }, [])
 
   const loadGameState = async (code: string) => {
     try {
@@ -133,11 +130,28 @@ function PlayGameContent() {
       const response = await fetch(`/api/rooms?code=${code}`)
       if (response.ok) {
         const roomData = await response.json()
+        
+        // Load teams from localStorage
+        const savedTeams = localStorage.getItem('friendsWeekendTeams')
+        let teams = []
+        if (savedTeams) {
+          teams = JSON.parse(savedTeams)
+        } else {
+          // Default teams if none saved
+          teams = [
+            { id: 1, name: 'Group 1', members: ['Keith', 'Casper'], score: 0 },
+            { id: 2, name: 'Group 2', members: ['Tim', 'Stijn'], score: 0 },
+            { id: 3, name: 'Group 3', members: ['Maurits', 'Tijn'], score: 0 },
+            { id: 4, name: 'Group 4', members: ['Thijs', 'Yanick'], score: 0 },
+            { id: 5, name: 'Group 5', members: ['Sunny', 'Rutger'], score: 0 }
+          ]
+        }
+        
         const gameState = {
           isSetup: true,
           currentRound: 0,
           roundStatus: 'waiting',
-          teams: [],
+          teams: teams,
           roomCode: code,
           answersPrefilled: false,
           roomId: roomData.id,
@@ -272,7 +286,7 @@ function PlayGameContent() {
           <CardHeader>
             <CardTitle className="text-2xl text-center">🌟 Ranking the Stars</CardTitle>
             <p className="text-center text-gray-600">
-              Join het weekend spel!
+              Loading weekend game...
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
