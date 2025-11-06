@@ -424,6 +424,33 @@ export default function AdminDashboard() {
     saveGameState(newState)
   }
 
+  const clearAllDevicePairings = async () => {
+    if (!confirm('⚠️ This will unpair ALL devices from teams. Players will need to rejoin. Continue?')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/clear-all-pairings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: gameState.roomCode
+        })
+      })
+
+      const data = await response.json()
+      
+      if (response.ok) {
+        alert(`✅ Success! Unpaired ${data.unpairedCount} device(s). All teams are now available.`)
+      } else {
+        alert(`❌ Error: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Failed to clear pairings:', error)
+      alert('❌ Failed to clear device pairings')
+    }
+  }
+
   const toggleMember = (person: string) => {
     if (newTeamMembers.includes(person)) {
       setNewTeamMembers(newTeamMembers.filter(m => m !== person))
@@ -1254,12 +1281,22 @@ export default function AdminDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>👥 Teams</span>
-                  <Button
-                    onClick={() => setShowTeamCreation(true)}
-                    size="sm"
-                  >
-                    + Add Team
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={clearAllDevicePairings}
+                      size="sm"
+                      variant="outline"
+                      className="text-orange-600 hover:text-orange-700"
+                    >
+                      🧹 Clear Pairings
+                    </Button>
+                    <Button
+                      onClick={() => setShowTeamCreation(true)}
+                      size="sm"
+                    >
+                      + Add Team
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
