@@ -95,6 +95,20 @@ export async function POST(request: NextRequest) {
     
     testResults.push(`📝 Submitting test ranking: ${availableParticipants[0].name}, ${availableParticipants[1].name}, ${availableParticipants[2].name}`)
     
+    // First, clean up any existing individual submissions for team members
+    const teamMembers = await prisma.teamMember.findMany({
+      where: { teamId: testTeam.id }
+    })
+    
+    for (const member of teamMembers) {
+      await prisma.submission.deleteMany({
+        where: {
+          roundId: round.id,
+          participantId: member.participantId
+        }
+      })
+    }
+    
     // Create single team submission
     await prisma.teamSubmission.create({
       data: {
@@ -106,7 +120,7 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    testResults.push(`✅ Team submission created for ${testTeam.name}`)
+    testResults.push(`✅ Team submission created for ${testTeam.name} (cleaned up ${teamMembers.length} potential individual submissions)`)
     
     // Step 6: Close the round
     round = await prisma.round.update({
@@ -183,9 +197,13 @@ export async function POST(request: NextRequest) {
       testResults.push(`   No individual scores (pure team mode) ✅`)
     }
     
-    // Cleanup: Remove test device
+    // Cleanup: Remove test data
     await prisma.device.delete({ where: { id: device.id } })
-    testResults.push(`🧹 Test device cleaned up`)
+    await prisma.teamSubmission.deleteMany({ where: { roundId: round.id } })
+    await prisma.teamScore.deleteMany({ where: { roundId: round.id } })
+    await prisma.score.deleteMany({ where: { roundId: round.id } })
+    await prisma.round.delete({ where: { id: round.id } })
+    testResults.push(`🧹 Test data cleaned up (round, submissions, scores)`)
     
     testResults.push(`✅ End-to-end test completed successfully!`)
     
