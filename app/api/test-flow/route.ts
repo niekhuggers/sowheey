@@ -163,22 +163,24 @@ export async function POST(request: NextRequest) {
       orderBy: { points: 'desc' }
     })
     
-    testResults.push(`🏆 Team scores for this round:`)
+    testResults.push(`🏆 Team scores for Round ${nextRoundNumber}:`)
     teamScores.forEach(teamScore => {
       testResults.push(`   ${teamScore.team.name}: ${teamScore.points} points`)
     })
     
-    // Step 10: Check individual scores (if any still exist)
+    // Step 10: Check individual scores for THIS specific round
     const individualScores = await prisma.score.findMany({
       where: { roundId: round.id },
       include: { participant: true }
     })
     
+    testResults.push(`📊 Individual scores for Round ${nextRoundNumber}:`)
     if (individualScores.length > 0) {
-      testResults.push(`📊 Individual scores:`)
       individualScores.forEach(score => {
         testResults.push(`   ${score.participant.name}: ${score.points} points`)
       })
+    } else {
+      testResults.push(`   No individual scores (pure team mode) ✅`)
     }
     
     // Cleanup: Remove test device
