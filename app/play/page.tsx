@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { MobileRanking } from '@/components/game/mobile-ranking'
+import { connectSocket, joinRoom, getSocket } from '@/lib/socket-client'
 
 // HARDCODED DATA
 const PLAYERS = ['Tijn', 'Stijn', 'Tim', 'Maurits', 'Keith', 'Yanick', 'Rutger', 'Casper', 'Thijs', 'Sunny']
@@ -112,6 +113,52 @@ function PlayGameContent() {
     const savedTeamId = localStorage.getItem('selectedTeamId')
     if (savedTeamId) {
       setTeamId(parseInt(savedTeamId))
+    }
+    
+    // Connect to Socket.IO and set up event listeners
+    connectSocket()
+    const socket = getSocket()
+    
+    // Listen for round events
+    socket.on('round-started', (round) => {
+      console.log('Round started:', round)
+      setGameState(prev => prev ? { 
+        ...prev, 
+        roundStatus: 'active',
+        currentRound: round.roundNumber - 1 
+      } : prev)
+      setSubmitted(false)
+      setRankings([])
+      setFmkAnswers({})
+    })
+    
+    socket.on('round-closed', (round) => {
+      console.log('Round closed:', round)
+      setGameState(prev => prev ? { ...prev, roundStatus: 'revealing' } : prev)
+    })
+    
+    socket.on('round-revealed', (round) => {
+      console.log('Round revealed:', round)
+      setGameState(prev => prev ? { ...prev, roundStatus: 'revealing' } : prev)
+    })
+    
+    socket.on('game-completed', () => {
+      console.log('Game completed')
+      setGameState(prev => prev ? { ...prev, roundStatus: 'completed' } : prev)
+    })
+    
+    // Join room when socket is connected
+    socket.on('connect', () => {
+      console.log('Socket connected, joining room WEEKEND2024')
+      joinRoom('WEEKEND2024')
+    })
+    
+    return () => {
+      socket.off('round-started')
+      socket.off('round-closed')
+      socket.off('round-revealed')
+      socket.off('game-completed')
+      socket.off('connect')
     }
   }, [])
 

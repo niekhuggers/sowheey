@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { connectSocket, sendHostAction, getSocket } from '@/lib/socket-client'
 
 // HARDCODED DATA
 const PLAYERS = ['Tijn', 'Stijn', 'Tim', 'Maurits', 'Keith', 'Yanick', 'Rutger', 'Casper', 'Thijs', 'Sunny']
@@ -137,6 +138,15 @@ export default function AdminDashboard() {
     // Auto-load game state without localStorage authentication check
     if (!dataLoaded) {
       loadGameState()
+    }
+    
+    // Connect to Socket.IO
+    connectSocket()
+    
+    return () => {
+      // Clean up socket connection on unmount
+      const socket = getSocket()
+      socket.disconnect()
     }
   }, [])
 
@@ -462,19 +472,35 @@ export default function AdminDashboard() {
   }
 
   const startRound = () => {
+    if (!gameState.questions || !gameState.questions[gameState.currentRound]) {
+      console.error('No question available for current round')
+      return
+    }
+    
+    // Send Socket.IO host action to start round
+    sendHostAction(gameState.roomCode, 'weekend2024-admin-token', 'start-round', {
+      questionId: gameState.questions[gameState.currentRound].id,
+      roundNumber: gameState.currentRound + 1
+    })
+    
+    // Also update local state for immediate UI feedback
     const newState = {
       ...gameState,
       roundStatus: 'active' as const
     }
-    saveGameState(newState)
+    setGameState(newState)
   }
 
   const revealResults = () => {
+    // Send Socket.IO host action to reveal results
+    sendHostAction(gameState.roomCode, 'weekend2024-admin-token', 'reveal-results', {})
+    
+    // Also update local state for immediate UI feedback
     const newState = {
       ...gameState,
       roundStatus: 'revealing' as const
     }
-    saveGameState(newState)
+    setGameState(newState)
     
     // Auto advance after 10 seconds
     setTimeout(() => {
@@ -483,7 +509,14 @@ export default function AdminDashboard() {
         roundStatus: gameState.currentRound >= QUESTIONS.length - 1 ? 'completed' as const : 'waiting' as const,
         currentRound: gameState.currentRound + 1
       }
-      saveGameState(nextState)
+      setGameState(nextState)
+      
+      // Send Socket.IO action for next round or completion
+      if (gameState.currentRound >= QUESTIONS.length - 1) {
+        sendHostAction(gameState.roomCode, 'weekend2024-admin-token', 'complete-game', {})
+      } else {
+        sendHostAction(gameState.roomCode, 'weekend2024-admin-token', 'next-round', {})
+      }
     }, 10000)
   }
 
