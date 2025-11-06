@@ -59,6 +59,20 @@ interface GameState {
   }>
   roomCode: string
   answersPrefilled: boolean
+  roomId?: string
+  participants?: Array<{
+    id: string
+    name: string
+    inviteToken: string
+    isHost: boolean
+    isGuest: boolean
+  }>
+  questions?: Array<{
+    id: string
+    text: string
+    category: string
+    sortOrder: number
+  }>
 }
 
 export default function AdminDashboard() {
@@ -136,32 +150,67 @@ export default function AdminDashboard() {
     localStorage.setItem('weekendGameState', JSON.stringify(newState))
   }
 
-  const setupGame = () => {
+  const setupGame = async () => {
     setLoading(true)
     
-    // Use fixed room code for consistent weekend games
-    const roomCode = 'WEEKEND2024'
+    try {
+      // Use fixed room code for consistent weekend games
+      const roomCode = 'WEEKEND2024'
 
-    // Create standard team division from your screenshot
-    const standardTeams = [
-      { id: 1, name: 'Group 1', members: ['Keith', 'Casper'], score: 0 },
-      { id: 2, name: 'Group 2', members: ['Tim', 'Stijn'], score: 0 },
-      { id: 3, name: 'Group 3', members: ['Maurits', 'Tijn'], score: 0 },
-      { id: 4, name: 'Group 4', members: ['Thijs', 'Yanick'], score: 0 },
-      { id: 5, name: 'Group 5', members: ['Sunny', 'Rutger'], score: 0 }
-    ]
+      // Create room and participants in database
+      const setupResponse = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Friends Weekend Game',
+          code: roomCode,
+          participants: ALL_PEOPLE.map(name => ({
+            name,
+            isHost: HOSTS.includes(name),
+            isGuest: false
+          })),
+          questions: QUESTIONS.map((text, index) => ({
+            text,
+            category: text.includes('Fuck, Marry, Kill') ? 'special' : 'general',
+            sortOrder: index
+          }))
+        })
+      })
 
-    const newState: GameState = {
-      isSetup: true,
-      currentRound: 0,
-      roundStatus: 'waiting',
-      teams: standardTeams,
-      roomCode,
-      answersPrefilled: false
+      if (!setupResponse.ok) {
+        throw new Error('Failed to create room')
+      }
+
+      const roomData = await setupResponse.json()
+      
+      // Create standard team division from your screenshot
+      const standardTeams = [
+        { id: 1, name: 'Group 1', members: ['Keith', 'Casper'], score: 0 },
+        { id: 2, name: 'Group 2', members: ['Tim', 'Stijn'], score: 0 },
+        { id: 3, name: 'Group 3', members: ['Maurits', 'Tijn'], score: 0 },
+        { id: 4, name: 'Group 4', members: ['Thijs', 'Yanick'], score: 0 },
+        { id: 5, name: 'Group 5', members: ['Sunny', 'Rutger'], score: 0 }
+      ]
+
+      const newState: GameState = {
+        isSetup: true,
+        currentRound: 0,
+        roundStatus: 'waiting',
+        teams: standardTeams,
+        roomCode,
+        answersPrefilled: false,
+        roomId: roomData.room.id,
+        participants: roomData.participants,
+        questions: roomData.questions
+      }
+
+      saveGameState(newState)
+    } catch (error) {
+      console.error('Error setting up game:', error)
+      alert('Failed to setup game. Please try again.')
+    } finally {
+      setLoading(false)
     }
-
-    saveGameState(newState)
-    setLoading(false)
   }
 
   const addTeam = () => {
@@ -225,17 +274,58 @@ export default function AdminDashboard() {
     setShowPrefill(true)
   }
 
-  const savePrefillAnswer = (rankings: string[]) => {
-    const person = ALL_PEOPLE[currentPrefillPerson]
+  const savePrefillAnswer = async (rankings: string[]) => {
+    const personName = ALL_PEOPLE[currentPrefillPerson]
+    
+    // Update local state first
     const newAnswers = {
       ...prefillAnswers,
-      [person]: {
-        ...prefillAnswers[person],
+      [personName]: {
+        ...prefillAnswers[personName],
         [currentPrefillQuestion]: rankings
       }
     }
-    
     setPrefillAnswers(newAnswers)
+    
+    // Save to database if we have room data
+    if (gameState.roomId && gameState.participants && gameState.questions) {
+      try {
+        const participant = gameState.participants.find(p => p.name === personName)
+        const question = gameState.questions[currentPrefillQuestion]
+        
+        if (participant && question && rankings.length === 3) {
+          // Convert ranking names to participant IDs
+          const rank1Participant = gameState.participants.find(p => p.name === rankings[0])
+          const rank2Participant = gameState.participants.find(p => p.name === rankings[1])
+          const rank3Participant = gameState.participants.find(p => p.name === rankings[2])
+          
+          if (rank1Participant && rank2Participant && rank3Participant) {
+            const response = await fetch('/api/pre-submissions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                inviteToken: participant.inviteToken,
+                roomCode: gameState.roomCode,
+                submissions: [{
+                  questionId: question.id,
+                  rank1ParticipantId: rank1Participant.id,
+                  rank2ParticipantId: rank2Participant.id,
+                  rank3ParticipantId: rank3Participant.id,
+                }]
+              })
+            })
+            
+            if (!response.ok) {
+              console.error('Failed to save pre-submission to database')
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error saving to database:', error)
+      }
+    }
+    
+    // Also save to localStorage as backup
     localStorage.setItem('friendsWeekendAnswers', JSON.stringify(newAnswers))
 
     // Move to next
@@ -633,19 +723,10 @@ export default function AdminDashboard() {
                         Close
                       </Button>
                       <Button
-                        onClick={() => {
+                        onClick={async () => {
                           const currentAnswers = prefillAnswers[ALL_PEOPLE[currentPrefillPerson]]?.[currentPrefillQuestion] || []
                           if (currentAnswers.length === 3) {
-                            // Save current answer
-                            const newAnswers = {
-                              ...prefillAnswers,
-                              [ALL_PEOPLE[currentPrefillPerson]]: {
-                                ...prefillAnswers[ALL_PEOPLE[currentPrefillPerson]],
-                                [currentPrefillQuestion]: currentAnswers
-                              }
-                            }
-                            setPrefillAnswers(newAnswers)
-                            localStorage.setItem('friendsWeekendAnswers', JSON.stringify(newAnswers))
+                            await savePrefillAnswer(currentAnswers)
                             
                             // Show save feedback
                             setJustSaved(true)
