@@ -282,10 +282,12 @@ export default function AdminDashboard() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.message || 'Failed to create test room')
+        console.error('Test room creation error:', error)
+        throw new Error(error.error || error.message || 'Failed to create test room')
       }
 
       const data = await response.json()
+      console.log('Test room created:', data)
       alert(`Test room created! Code: ${data.room.code}`)
     } catch (error) {
       console.error('Error setting up test game:', error)
