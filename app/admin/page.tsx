@@ -141,11 +141,30 @@ export default function AdminDashboard() {
     }
     
     // Connect to Socket.IO
+    console.log('Admin page: Connecting to Socket.IO...')
     connectSocket()
+    
+    const socket = getSocket()
+    
+    socket.on('connect', () => {
+      console.log('Admin Socket.IO connected successfully')
+      console.log('Joining room WEEKEND2024')
+      socket.emit('join-room', { roomCode: 'WEEKEND2024' })
+    })
+    
+    socket.on('connect_error', (error) => {
+      console.error('Admin Socket.IO connection error:', error)
+    })
+    
+    socket.on('disconnect', (reason) => {
+      console.log('Admin Socket.IO disconnected:', reason)
+    })
     
     return () => {
       // Clean up socket connection on unmount
-      const socket = getSocket()
+      socket.off('connect')
+      socket.off('connect_error')
+      socket.off('disconnect')
       socket.disconnect()
     }
   }, [])
@@ -519,10 +538,17 @@ export default function AdminDashboard() {
   }
 
   const startRound = () => {
+    console.log('🚀 Start Round button clicked!')
+    console.log('Current game state:', gameState)
+    
     if (!gameState.questions || !gameState.questions[gameState.currentRound]) {
       console.error('No question available for current round')
       return
     }
+    
+    console.log('📡 Sending Socket.IO host action: start-round')
+    console.log('Room code:', gameState.roomCode)
+    console.log('Question:', gameState.questions[gameState.currentRound])
     
     // Send Socket.IO host action to start round
     sendHostAction(gameState.roomCode, 'weekend2024-admin-token', 'start-round', {
@@ -536,6 +562,7 @@ export default function AdminDashboard() {
       roundStatus: 'active' as const
     }
     setGameState(newState)
+    console.log('✅ Local state updated to active')
   }
 
   const revealResults = () => {
