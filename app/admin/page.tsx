@@ -290,8 +290,8 @@ export default function AdminDashboard() {
       }
 
       // Load complete game state from new API
-      console.log('🔄 Loading game state with token: weekend2024-admin-token')
-      const response = await fetch(`/api/game-state?roomCode=WEEKEND2024&hostToken=weekend2024-admin-token`)
+      console.log('🔄 Loading game state for WEEKEND2024')
+      const response = await fetch(`/api/game-state?roomCode=WEEKEND2024`)
       console.log('Game-state API response status:', response.status)
       
       if (response.ok) {

@@ -176,7 +176,7 @@ function PlayGameContent() {
   const loadGameState = async (code: string) => {
     try {
       // Load complete game state from the same API that admin uses
-      const response = await fetch(`/api/game-state?roomCode=${code}&hostToken=weekend2024-admin-token`)
+      const response = await fetch(`/api/game-state?roomCode=${code}`)
       if (response.ok) {
         const gameStateData = await response.json()
         

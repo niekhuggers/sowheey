@@ -4,7 +4,6 @@ import { z } from 'zod'
 
 const updateGameStateSchema = z.object({
   roomCode: z.string(),
-  hostToken: z.string(),
   gameState: z.enum(['SETUP', 'PRE_EVENT', 'LIVE_EVENT', 'COMPLETED']).optional(),
   currentRound: z.number().optional(),
 })
@@ -13,10 +12,9 @@ const updateGameStateSchema = z.object({
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const roomCode = searchParams.get('roomCode')
-  const hostToken = searchParams.get('hostToken')
 
-  if (!roomCode || !hostToken) {
-    return NextResponse.json({ error: 'Missing roomCode or hostToken' }, { status: 400 })
+  if (!roomCode) {
+    return NextResponse.json({ error: 'Missing roomCode' }, { status: 400 })
   }
 
   try {
@@ -54,8 +52,8 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (!room || room.hostToken !== hostToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!room) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 })
     }
 
     // Transform data for frontend
@@ -95,14 +93,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { roomCode, hostToken, gameState, currentRound } = updateGameStateSchema.parse(body)
+    const { roomCode, gameState, currentRound } = updateGameStateSchema.parse(body)
 
     const room = await prisma.room.findUnique({
       where: { code: roomCode }
     })
 
-    if (!room || room.hostToken !== hostToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!room) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 })
     }
 
     const updateData: any = {}
