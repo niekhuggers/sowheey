@@ -103,11 +103,20 @@ function PlayGameContent() {
   const [fmkAnswers, setFmkAnswers] = useState<{[key: string]: string}>({})
   const [submitted, setSubmitted] = useState(false)
   const [team, setTeam] = useState<any>(null)
+  const [deviceToken, setDeviceToken] = useState<string>('')
 
   useEffect(() => {
     // Always auto-join WEEKEND2024 - this app is only for this room
     setRoomCode('WEEKEND2024')
     loadGameState('WEEKEND2024')
+
+    // Generate or get existing device token
+    let token = localStorage.getItem('deviceToken')
+    if (!token) {
+      token = crypto.randomUUID()
+      localStorage.setItem('deviceToken', token)
+    }
+    setDeviceToken(token)
 
     // Check if team already selected
     const savedTeamId = localStorage.getItem('selectedTeamId')
@@ -149,8 +158,10 @@ function PlayGameContent() {
     
     // Join room when socket is connected
     socket.on('connect', () => {
-      console.log('Socket connected, joining room WEEKEND2024')
-      joinRoom('WEEKEND2024')
+      console.log('Socket connected, joining room WEEKEND2024 with device token')
+      if (token) {
+        joinRoom('WEEKEND2024', token)
+      }
     })
     
     return () => {
