@@ -171,6 +171,37 @@ function PlayGameContent() {
         console.log('Setting game state with teams:', gameState.teams)
         setGameState(gameState)
         return
+      } else if (response.status === 404 && code === 'WEEKEND2024') {
+        // WEEKEND2024 room doesn't exist, try to create it
+        console.log('WEEKEND2024 room not found, creating it...')
+        try {
+          const createResponse = await fetch('/api/rooms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'Friends Weekend Game',
+              code: 'WEEKEND2024',
+              participants: ALL_PEOPLE.map(name => ({
+                name,
+                isHost: HOSTS.includes(name),
+                isGuest: false
+              })),
+              questions: QUESTIONS.map((q, index) => ({
+                text: q.text,
+                category: q.text.includes('Fuck, Marry, Kill') ? 'special' : 'general',
+                sortOrder: index
+              }))
+            })
+          })
+          
+          if (createResponse.ok) {
+            console.log('WEEKEND2024 room created, retrying load...')
+            // Retry loading the room
+            return loadGameState(code)
+          }
+        } catch (createError) {
+          console.error('Error creating WEEKEND2024 room:', createError)
+        }
       }
     } catch (error) {
       console.error('Error loading room from database:', error)
