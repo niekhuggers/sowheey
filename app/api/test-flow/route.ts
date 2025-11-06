@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const testResults = []
     
-    testResults.push('🚀 Starting end-to-end game flow test...')
+    testResults.push('🚀 Starting end-to-end game flow test... (v2.0)')
     
     // Step 1: Check if WEEKEND2024 room exists
     const room = await prisma.room.findUnique({
