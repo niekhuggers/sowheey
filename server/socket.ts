@@ -6,9 +6,21 @@ import { z } from 'zod'
 const prisma = new PrismaClient()
 const httpServer = createServer()
 
+// Health check endpoint for Railway
+httpServer.on('request', (req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }))
+  }
+})
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      'https://ranking-the-stars.vercel.app',
+      process.env.NEXT_PUBLIC_APP_URL
+    ].filter(Boolean),
     methods: ['GET', 'POST']
   }
 })
@@ -392,7 +404,7 @@ io.on('connection', (socket) => {
   })
 })
 
-const PORT = process.env.SOCKET_PORT || 3001
-httpServer.listen(PORT, () => {
+const PORT = process.env.PORT || process.env.SOCKET_PORT || 3001
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Socket.IO server running on port ${PORT}`)
 })
