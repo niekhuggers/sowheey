@@ -228,6 +228,47 @@ export default function AdminDashboard() {
     }
   }
 
+  const setupTestGame = async () => {
+    setLoading(true)
+    try {
+      const testParticipants = [
+        { name: 'Test Player 1', isHost: false, isGuest: false },
+        { name: 'Test Player 2', isHost: false, isGuest: false },
+        { name: 'Test Player 3', isHost: false, isGuest: false },
+        { name: 'Test Host', isHost: true, isGuest: false }
+      ]
+
+      const response = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'Test Room',
+          participants: testParticipants,
+          questions: QUESTIONS.slice(0, 3).map((q, index) => ({
+            text: q,
+            category: q.includes('Fuck, Marry, Kill') ? 'special' : 'general',
+            sortOrder: index,
+          }))
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to create test room')
+      }
+
+      const data = await response.json()
+      alert(`Test room created! Code: ${data.room.code}`)
+    } catch (error) {
+      console.error('Error setting up test game:', error)
+      alert('Failed to setup test game: ' + (error as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const addTeam = () => {
     if (!newTeamName.trim() || newTeamMembers.length !== 2) {
       alert('Team naam en 2 leden zijn verplicht!')
@@ -476,15 +517,30 @@ export default function AdminDashboard() {
                 </div>
               </div>
               
-              <div className="text-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
                   onClick={setupGame}
                   disabled={loading}
                   size="lg"
-                  className="w-full max-w-md"
+                  className="bg-green-600 hover:bg-green-700"
                 >
-                  {loading ? 'Setting up...' : 'Initialize Weekend Game'}
+                  {loading ? 'Setting up...' : '🎮 Initialize Weekend Game'}
                 </Button>
+                
+                <Button
+                  onClick={() => setupTestGame()}
+                  disabled={loading}
+                  size="lg"
+                  variant="secondary"
+                  className="border-orange-300 hover:bg-orange-50"
+                >
+                  {loading ? 'Setting up...' : '🧪 Create Test Room'}
+                </Button>
+              </div>
+              
+              <div className="text-center text-sm text-gray-600 space-y-1">
+                <p><strong>Weekend Game:</strong> Uses room code WEEKEND2024 with all your friends</p>
+                <p><strong>Test Room:</strong> Creates a separate room for testing game mechanics</p>
               </div>
             </CardContent>
           </Card>
