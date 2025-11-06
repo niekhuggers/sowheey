@@ -443,12 +443,41 @@ export default function AdminDashboard() {
   }
 
   const migrateLocalData = async () => {
-    if (!gameState.roomId) {
-      alert('Room not set up yet. Please set up game first.')
-      return
+    // Try to get hostToken from localStorage or gameState
+    let hostToken = localStorage.getItem('hostToken')
+    
+    // If no hostToken in localStorage, try to get room data first
+    if (!hostToken || !gameState.roomId) {
+      try {
+        const response = await fetch('/api/rooms?code=WEEKEND2024')
+        if (response.ok) {
+          const roomData = await response.json()
+          if (roomData.hostToken) {
+            // For WEEKEND2024, we can use the host token directly if it's the admin
+            hostToken = roomData.hostToken
+            localStorage.setItem('hostToken', hostToken)
+            
+            // Update gameState if needed
+            if (!gameState.roomId) {
+              const newState = {
+                ...gameState,
+                roomId: roomData.id,
+                participants: roomData.participants,
+                questions: roomData.questions
+              }
+              setGameState(newState)
+            }
+          }
+        } else {
+          alert('WEEKEND2024 room not found. Please visit /play first to create the room.')
+          return
+        }
+      } catch (error) {
+        alert('Failed to load room data. Please try again.')
+        return
+      }
     }
 
-    const hostToken = localStorage.getItem('hostToken')
     if (!hostToken) {
       alert('Host token not found. Please reload and try again.')
       return
