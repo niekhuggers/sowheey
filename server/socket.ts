@@ -451,8 +451,34 @@ io.on('connection', (socket) => {
   })
 })
 
-const PORT = Number(process.env.PORT) || Number(process.env.SOCKET_PORT) || 3001
+// Railway provides PORT as a string, ensure it's properly parsed
+const portEnvValue = process.env.PORT
+const socketPortEnvValue = process.env.SOCKET_PORT
+const defaultPort = '3001'
+
+console.log(`Debug: PORT env = "${portEnvValue}", SOCKET_PORT env = "${socketPortEnvValue}"`)
+
+// Use PORT from Railway if available, otherwise SOCKET_PORT, otherwise default
+let portFromEnv = defaultPort
+if (portEnvValue && portEnvValue.trim() !== '') {
+  portFromEnv = portEnvValue.trim()
+} else if (socketPortEnvValue && socketPortEnvValue.trim() !== '') {
+  portFromEnv = socketPortEnvValue.trim()
+}
+
+let PORT = parseInt(portFromEnv, 10)
+
+// Validate PORT is a valid integer
+if (isNaN(PORT) || PORT < 0 || PORT > 65535) {
+  console.error(`Invalid PORT: "${portFromEnv}". Falling back to default 3001.`)
+  PORT = 3001
+  console.log(`Using fallback port: ${PORT}`)
+}
+
 const HOST = process.env.HOST || '0.0.0.0'
+
+console.log(`Starting Socket.IO server on ${HOST}:${PORT}`)
+console.log(`Environment: NODE_ENV=${process.env.NODE_ENV}, PORT=${process.env.PORT}`)
 
 httpServer.listen(PORT, HOST, () => {
   console.log(`Socket.IO server running on ${HOST}:${PORT}`)
