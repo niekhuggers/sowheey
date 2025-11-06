@@ -1,2 +1,2 @@
 [deploy]
-startCommand = "npx tsx server/socket.ts"
+startCommand = "node railway-server.js"
