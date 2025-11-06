@@ -259,12 +259,34 @@ function PlayGameContent() {
     loadGameState(codeToUse.toUpperCase())
   }
 
-  const selectTeam = (selectedTeamId: number) => {
-    setTeamId(selectedTeamId)
-    localStorage.setItem('selectedTeamId', selectedTeamId.toString())
-    
-    const selectedTeam = gameState.teams.find((t: any) => t.id === selectedTeamId)
-    setTeam(selectedTeam)
+  const selectTeam = async (selectedTeamId: number) => {
+    try {
+      // Check if team already has a device paired
+      const response = await fetch('/api/team-pairing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teamId: selectedTeamId,
+          deviceToken: token,
+          roomCode: 'WEEKEND2024'
+        })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        alert(error.error || 'Failed to join team')
+        return
+      }
+      
+      setTeamId(selectedTeamId)
+      localStorage.setItem('selectedTeamId', selectedTeamId.toString())
+      
+      const selectedTeam = gameState.teams.find((t: any) => t.id === selectedTeamId)
+      setTeam(selectedTeam)
+    } catch (error) {
+      console.error('Error joining team:', error)
+      alert('Failed to join team')
+    }
   }
 
   const clearTeamSelection = () => {
