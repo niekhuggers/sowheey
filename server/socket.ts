@@ -262,21 +262,28 @@ io.on('connection', (socket) => {
           console.log(`Round ${currentRound.id} closed, now calculating results...`)
 
           // Call the calculate API to determine community ranking and scores
+          const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
+          const calculateUrl = `${appUrl}/api/rounds/${currentRound.id}/calculate`
+          
           console.log(`Calling calculate API for round ${currentRound.id}`)
-          const calculateResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/rounds/${currentRound.id}/calculate`, {
+          console.log(`Calculate URL: ${calculateUrl}`)
+          
+          const calculateResponse = await fetch(calculateUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ hostToken: room.hostToken })
           })
 
           if (!calculateResponse.ok) {
-            console.error('Failed to calculate round results:', await calculateResponse.text())
+            const errorText = await calculateResponse.text()
+            console.error(`❌ Calculate API failed (${calculateResponse.status}):`, errorText)
             socket.emit('error', { message: 'Failed to calculate results' })
             return
           }
 
           const communityTop3 = await calculateResponse.json()
-          console.log('Community top 3 calculated:', communityTop3)
+          console.log('✅ Community top 3 calculated:', communityTop3)
+          console.log('✅ Calculate API call successful!')
 
           // Update round status to REVEALED with community ranking
           const revealedRound = await prisma.round.update({
