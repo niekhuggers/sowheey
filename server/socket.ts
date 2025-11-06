@@ -202,7 +202,8 @@ io.on('connection', (socket) => {
   socket.on('submit-ranking', async (data: {
     roomCode: string;
     roundId: string;
-    participantId: string;
+    participantId?: string;
+    teamId?: string;
     deviceToken: string;
     rankings: {
       rank1Id: string;
@@ -215,37 +216,83 @@ io.on('connection', (socket) => {
         where: { deviceToken: data.deviceToken }
       })
 
-      if (!device || device.participantId !== data.participantId) {
+      if (!device) {
+        socket.emit('error', { message: 'Device not found' })
+        return
+      }
+
+      // Validate device authorization - either individual participant or team
+      const isAuthorizedIndividual = data.participantId && device.participantId === data.participantId
+      const isAuthorizedTeam = data.teamId && device.teamId === data.teamId
+      
+      if (!isAuthorizedIndividual && !isAuthorizedTeam) {
         socket.emit('error', { message: 'Unauthorized device' })
         return
       }
 
-      const submission = await prisma.submission.upsert({
-        where: {
-          roundId_participantId: {
-            roundId: data.roundId,
-            participantId: data.participantId
-          }
-        },
-        update: {
-          rank1Id: data.rankings.rank1Id,
-          rank2Id: data.rankings.rank2Id,
-          rank3Id: data.rankings.rank3Id,
-          submittedAt: new Date()
-        },
-        create: {
-          roundId: data.roundId,
-          participantId: data.participantId,
-          rank1Id: data.rankings.rank1Id,
-          rank2Id: data.rankings.rank2Id,
-          rank3Id: data.rankings.rank3Id
-        }
-      })
+      // For team submissions, create submission for each team member
+      if (data.teamId && device.teamId) {
+        const teamMembers = await prisma.teamMember.findMany({
+          where: { teamId: data.teamId }
+        })
 
-      io.to(data.roomCode).emit('submission-received', {
-        participantId: data.participantId,
-        roundId: data.roundId
-      })
+        for (const member of teamMembers) {
+          await prisma.submission.upsert({
+            where: {
+              roundId_participantId: {
+                roundId: data.roundId,
+                participantId: member.participantId
+              }
+            },
+            update: {
+              rank1Id: data.rankings.rank1Id,
+              rank2Id: data.rankings.rank2Id,
+              rank3Id: data.rankings.rank3Id,
+              submittedAt: new Date()
+            },
+            create: {
+              roundId: data.roundId,
+              participantId: member.participantId,
+              rank1Id: data.rankings.rank1Id,
+              rank2Id: data.rankings.rank2Id,
+              rank3Id: data.rankings.rank3Id
+            }
+          })
+        }
+
+        io.to(data.roomCode).emit('submission-received', {
+          teamId: data.teamId,
+          roundId: data.roundId
+        })
+      } else if (data.participantId) {
+        // Individual participant submission
+        const submission = await prisma.submission.upsert({
+          where: {
+            roundId_participantId: {
+              roundId: data.roundId,
+              participantId: data.participantId
+            }
+          },
+          update: {
+            rank1Id: data.rankings.rank1Id,
+            rank2Id: data.rankings.rank2Id,
+            rank3Id: data.rankings.rank3Id,
+            submittedAt: new Date()
+          },
+          create: {
+            roundId: data.roundId,
+            participantId: data.participantId,
+            rank1Id: data.rankings.rank1Id,
+            rank2Id: data.rankings.rank2Id,
+            rank3Id: data.rankings.rank3Id
+          }
+        })
+
+        io.to(data.roomCode).emit('submission-received', {
+          participantId: data.participantId,
+          roundId: data.roundId
+        })
+      }
     } catch (error) {
       console.error('Submission error:', error)
       socket.emit('error', { message: 'Failed to submit ranking' })

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { MobileRanking } from '@/components/game/mobile-ranking'
 
 // HARDCODED DATA
 const PLAYERS = ['Tijn', 'Stijn', 'Tim', 'Maurits', 'Keith', 'Yanick', 'Rutger', 'Casper', 'Thijs', 'Sunny']
@@ -12,21 +13,21 @@ const HOSTS = ['Niek', 'Joep', 'Merijn']
 const ALL_PEOPLE = [...PLAYERS, ...HOSTS]
 
 const QUESTIONS = [
-  'Wie gaan nooit trouwen?',
-  'Wie heeft de minste ambitie?', 
-  'Wie zegt het vaakst last minute af?',
-  'Wie zijn gedoemd om irritante kinderen te krijgen?',
-  'Wie belanden later in de gevangenis?',
-  'Wie denken dat ze slim zijn, maar zijn het niet?',
-  'Wie zijn het irritantst als ze dronken zijn?',
-  'Wie verlaat altijd als laatste het huis?',
-  'Wie heeft het grootste ego zonder reden?',
-  'Wie gebruikt het meeste drugs?',
-  'Wie zou stand-up comedian kunnen zijn?',
-  'Wie trouwt met een veel jongere partner?',
-  'Wie zou je peetoom van je kind maken?',
-  'Wie poept het meest?',
-  'Fuck, Marry, Kill: Aylin, Keone en Ceana'
+  { text: 'Wie gaan nooit trouwen?', type: 'ranking' },
+  { text: 'Wie heeft de minste ambitie?', type: 'ranking' }, 
+  { text: 'Wie zegt het vaakst last minute af?', type: 'ranking' },
+  { text: 'Wie zijn gedoemd om irritante kinderen te krijgen?', type: 'ranking' },
+  { text: 'Wie belanden later in de gevangenis?', type: 'ranking' },
+  { text: 'Wie denken dat ze slim zijn, maar zijn het niet?', type: 'ranking' },
+  { text: 'Wie zijn het irritantst als ze dronken zijn?', type: 'ranking' },
+  { text: 'Wie verlaat altijd als laatste het huis?', type: 'ranking' },
+  { text: 'Wie heeft het grootste ego zonder reden?', type: 'ranking' },
+  { text: 'Wie gebruikt het meeste drugs?', type: 'ranking' },
+  { text: 'Wie zou stand-up comedian kunnen zijn?', type: 'ranking' },
+  { text: 'Wie trouwt met een veel jongere partner?', type: 'ranking' },
+  { text: 'Wie zou je peetoom van je kind maken?', type: 'ranking' },
+  { text: 'Wie poept het meest?', type: 'ranking' },
+  { text: 'Fuck, Marry, Kill: Aylin, Keone en Ceana', type: 'fmk', fixedOptions: ['Aylin', 'Keone', 'Ceana'] }
 ]
 
 // Helper functions for processing pre-filled answers
@@ -180,20 +181,16 @@ function PlayGameContent() {
 
   const submitRanking = () => {
     const currentQuestion = QUESTIONS[gameState.currentRound]
-    const isFMKQuestion = currentQuestion.includes('Fuck, Marry, Kill')
+    const isFMKQuestion = currentQuestion.type === 'fmk'
     
-    if (isFMKQuestion) {
-      if (Object.keys(fmkAnswers).length !== 3) return
-    } else {
-      if (rankings.length !== 3) return
-    }
+    if (rankings.length !== 3) return
 
     // Get community ranking for scoring
     const prefilledAnswers = loadPrefilledAnswers()
     const communityRanking = calculateCommunityRanking(gameState.currentRound, prefilledAnswers)
     
     // Calculate team's score for this round
-    const teamRanking = isFMKQuestion ? Object.keys(fmkAnswers).map(p => p) : rankings
+    const teamRanking = rankings
     const roundScore = calculateTeamScore(teamRanking, communityRanking)
 
     // Save submission locally (in real version would send to server)
@@ -319,8 +316,18 @@ function PlayGameContent() {
   }
 
   const currentQuestion = QUESTIONS[gameState.currentRound]
-  const isFMKQuestion = currentQuestion.includes('Fuck, Marry, Kill')
+  const isFMKQuestion = currentQuestion.type === 'fmk'
   const availablePeople = ALL_PEOPLE.filter(p => !team?.members.includes(p))
+  
+  // Convert people to participant format for MobileRanking component
+  const participantsForRanking = availablePeople.map(person => ({
+    id: person,
+    name: person,
+    avatarUrl: undefined,
+    inviteToken: '',
+    isGuest: false,
+    createdAt: new Date()
+  }))
 
   // Game Play
   return (
@@ -354,77 +361,34 @@ function PlayGameContent() {
                 <div className="space-y-6">
                   {/* Question */}
                   <div className="text-lg font-medium text-center p-4 bg-blue-50 rounded-lg">
-                    {currentQuestion}
+                    {currentQuestion.text}
                   </div>
 
-                  {isFMKQuestion ? (
-                    /* FMK Interface */
-                    <div className="space-y-4">
-                      <h3 className="font-medium text-center">Assign actions:</h3>
-                      
-                      {['Aylin', 'Keone', 'Ceana'].map(person => (
-                        <div key={person} className="border rounded-lg p-3">
-                          <h4 className="font-medium text-center mb-2">{person}</h4>
-                          <div className="grid grid-cols-3 gap-2">
-                            {['Fuck', 'Marry', 'Kill'].map(action => (
-                              <Button
-                                key={action}
-                                variant={fmkAnswers[person] === action ? 'primary' : 'secondary'}
-                                onClick={() => handleFMKSelect(person, action)}
-                                size="sm"
-                                className={
-                                  action === 'Fuck' ? 'border-red-300 hover:bg-red-50' :
-                                  action === 'Marry' ? 'border-green-300 hover:bg-green-50' :
-                                  'border-gray-300 hover:bg-gray-50'
-                                }
-                              >
-                                {action}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    /* Regular Rankings */
-                    <>
-                      <div className="space-y-3">
-                        <h3 className="font-medium text-center">Team Top 3:</h3>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[0, 1, 2].map(pos => (
-                            <div key={pos} className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center min-h-16 flex items-center justify-center">
-                              {rankings[pos] ? (
-                                <span className="font-medium">{rankings[pos]}</span>
-                              ) : (
-                                <span className="text-gray-400 text-sm">{pos + 1}e</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <h3 className="font-medium">Selecteer mensen:</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                          {availablePeople.map(person => (
-                            <Button
-                              key={person}
-                              variant={rankings.includes(person) ? 'primary' : 'secondary'}
-                              onClick={() => handlePersonSelect(person)}
-                              className="h-12 text-sm"
-                              disabled={!rankings.includes(person) && rankings.length >= 3}
-                            >
-                              {person} {HOSTS.includes(person) && '👑'}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  <MobileRanking
+                    participants={participantsForRanking}
+                    onRankingChange={(newRankings) => {
+                      if (isFMKQuestion) {
+                        // Convert rankings array to fmk format
+                        const newFmkAnswers: {[key: string]: string} = {}
+                        const fmkActions = ['Fuck', 'Marry', 'Kill']
+                        newRankings.forEach((person, index) => {
+                          if (person && index < 3) {
+                            newFmkAnswers[person] = fmkActions[index]
+                          }
+                        })
+                        setFmkAnswers(newFmkAnswers)
+                        setRankings(newRankings)
+                      } else {
+                        setRankings(newRankings)
+                      }
+                    }}
+                    rankings={rankings}
+                    question={currentQuestion}
+                  />
 
                   <Button
                     onClick={submitRanking}
-                    disabled={isFMKQuestion ? Object.keys(fmkAnswers).length !== 3 : rankings.length !== 3}
+                    disabled={rankings.length !== 3}
                     className="w-full"
                     size="lg"
                   >
@@ -451,7 +415,7 @@ function PlayGameContent() {
             </CardHeader>
             <CardContent>
               <div className="text-center space-y-4">
-                <div className="text-lg font-medium">{currentQuestion}</div>
+                <div className="text-lg font-medium">{currentQuestion.text}</div>
                 
                 <div className="text-4xl">🎉</div>
                 

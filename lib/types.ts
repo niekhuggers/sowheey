@@ -49,6 +49,8 @@ export interface Question {
   id: string
   text: string
   category?: string
+  type?: 'ranking' | 'fmk'
+  fixedOptions?: string[]
   sortOrder: number
 }
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { connectSocket, joinRoom, submitRanking, getSocket } from '@/lib/socket-client'
+import { connectSocket, joinRoom, submitTeamRanking, getSocket } from '@/lib/socket-client'
 import { MobileRanking } from '@/components/game/mobile-ranking'
 
 export default function TeamPlayPage() {
@@ -89,10 +89,10 @@ export default function TeamPlayPage() {
     if (rankings.length !== 3 || !currentRound || !team) return
     
     try {
-      submitRanking(
+      submitTeamRanking(
         code as string,
         currentRound.id,
-        team.id, // Use team ID instead of participant ID
+        team.id, // Use team ID for team submission
         localStorage.getItem('teamDeviceToken') || '',
         {
           rank1Id: rankings[0],

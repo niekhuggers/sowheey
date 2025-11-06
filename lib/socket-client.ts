@@ -56,6 +56,23 @@ export function submitRanking(
   })
 }
 
+export function submitTeamRanking(
+  roomCode: string,
+  roundId: string,
+  teamId: string,
+  deviceToken: string,
+  rankings: { rank1Id: string; rank2Id: string; rank3Id: string }
+): void {
+  const socket = getSocket()
+  socket.emit('submit-ranking', {
+    roomCode,
+    roundId,
+    teamId,
+    deviceToken,
+    rankings,
+  })
+}
+
 export function pairDevice(
   roomCode: string,
   deviceToken: string,
