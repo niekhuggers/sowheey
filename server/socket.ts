@@ -452,7 +452,7 @@ io.on('connection', (socket) => {
 })
 
 // Railway will automatically set PORT, fallback to 3001 for local dev
-const PORT = process.env.PORT || 3001
+const PORT = Number(process.env.PORT) || 3001
 const HOST = '0.0.0.0'
 
 console.log(`Socket.IO server starting on ${HOST}:${PORT}`)
