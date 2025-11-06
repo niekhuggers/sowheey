@@ -474,7 +474,7 @@ export default function AdminDashboard() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 roomCode: gameState.roomCode,
-                hostToken: 'weekend2024-admin-token',
+                hostToken: '',
                 participantName: personName,
                 questionId: question.id,
                 fmkAnswers: rankings, // [F person, M person, K person]
@@ -499,7 +499,7 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   roomCode: gameState.roomCode,
-                  hostToken: 'weekend2024-admin-token',
+                  hostToken: '',
                   participantName: personName,
                   questionId: question.id,
                   rank1ParticipantId: rank1Participant.id,
@@ -551,7 +551,7 @@ export default function AdminDashboard() {
     console.log('Question:', gameState.questions[gameState.currentRound])
     
     // Send Socket.IO host action to start round
-    sendHostAction(gameState.roomCode, 'weekend2024-admin-token', 'start-round', {
+    sendHostAction(gameState.roomCode, '', 'start-round', {
       questionId: gameState.questions[gameState.currentRound].id,
       roundNumber: gameState.currentRound + 1
     })
@@ -567,7 +567,7 @@ export default function AdminDashboard() {
 
   const revealResults = () => {
     // Send Socket.IO host action to reveal results
-    sendHostAction(gameState.roomCode, 'weekend2024-admin-token', 'reveal-results', {})
+    sendHostAction(gameState.roomCode, '', 'reveal-results', {})
     
     // Also update local state for immediate UI feedback
     const newState = {
@@ -587,9 +587,9 @@ export default function AdminDashboard() {
       
       // Send Socket.IO action for next round or completion
       if (gameState.currentRound >= QUESTIONS.length - 1) {
-        sendHostAction(gameState.roomCode, 'weekend2024-admin-token', 'complete-game', {})
+        sendHostAction(gameState.roomCode, '', 'complete-game', {})
       } else {
-        sendHostAction(gameState.roomCode, 'weekend2024-admin-token', 'next-round', {})
+        sendHostAction(gameState.roomCode, '', 'next-round', {})
       }
     }, 10000)
   }
@@ -607,7 +607,7 @@ export default function AdminDashboard() {
 
   const migrateLocalData = async () => {
     // Use hardcoded host token for WEEKEND2024
-    const hostToken = 'weekend2024-admin-token'
+    const hostToken = ''
     
     // Skip complex room loading - just proceed with migration using hardcoded room code
     // The migration API will handle room validation

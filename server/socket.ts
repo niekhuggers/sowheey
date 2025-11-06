@@ -105,17 +105,7 @@ io.on('connection', (socket) => {
         return
       }
 
-      console.log('Room found, expected host token:', room.hostToken)
-
-      if (room.hostToken !== data.hostToken) {
-        console.error('❌ Host token mismatch!')
-        console.error('Expected:', room.hostToken)
-        console.error('Received:', data.hostToken)
-        socket.emit('error', { message: 'Unauthorized' })
-        return
-      }
-
-      console.log('✅ Host token validated, proceeding with action:', data.action)
+      console.log('✅ Room found, proceeding with action:', data.action)
 
       switch (data.action) {
         case 'add-participant':
