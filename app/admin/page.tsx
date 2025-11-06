@@ -166,7 +166,7 @@ export default function AdminDashboard() {
       setTimeout(() => {
         console.log('Reloading admin state after round revealed...')
         loadGameState()
-      }, 2000) // Longer delay to ensure database is fully updated
+      }, 1000) // Faster reload to show scores sooner
     })
     
     return () => {
@@ -565,6 +565,22 @@ export default function AdminDashboard() {
     console.log('✅ Local state updated to active')
   }
 
+  const manualNextRound = () => {
+    const nextState = {
+      ...gameState,
+      roundStatus: gameState.currentRound >= QUESTIONS.length - 1 ? 'completed' as const : 'waiting' as const,
+      currentRound: gameState.currentRound + 1
+    }
+    setGameState(nextState)
+    
+    // Send Socket.IO action for next round or completion
+    if (gameState.currentRound >= QUESTIONS.length - 1) {
+      sendHostAction(gameState.roomCode, '', 'complete-game', {})
+    } else {
+      sendHostAction(gameState.roomCode, '', 'next-round', {})
+    }
+  }
+
   const revealResults = () => {
     // Send Socket.IO host action to reveal results
     sendHostAction(gameState.roomCode, '', 'reveal-results', {})
@@ -576,22 +592,10 @@ export default function AdminDashboard() {
     }
     setGameState(newState)
     
-    // Auto advance after 10 seconds
+    // Auto advance after 20 seconds to give time to see scores
     setTimeout(() => {
-      const nextState = {
-        ...newState,
-        roundStatus: gameState.currentRound >= QUESTIONS.length - 1 ? 'completed' as const : 'waiting' as const,
-        currentRound: gameState.currentRound + 1
-      }
-      setGameState(nextState)
-      
-      // Send Socket.IO action for next round or completion
-      if (gameState.currentRound >= QUESTIONS.length - 1) {
-        sendHostAction(gameState.roomCode, '', 'complete-game', {})
-      } else {
-        sendHostAction(gameState.roomCode, '', 'next-round', {})
-      }
-    }, 10000)
+      manualNextRound()
+    }, 20000) // Increased from 10 to 20 seconds
   }
 
   const resetRoundsOnly = () => {
@@ -835,8 +839,8 @@ export default function AdminDashboard() {
                     
                     {gameState.roundStatus === 'revealing' && (
                       <div className="text-center">
-                        <div className="text-lg font-medium mb-4">Showing Results...</div>
-                        <div className="space-y-2">
+                        <div className="text-lg font-medium mb-4">🎉 Results Revealed!</div>
+                        <div className="space-y-2 mb-6">
                           {COMMUNITY_ANSWERS[gameState.currentRound].map((person, index) => (
                             <div key={person} className="flex items-center justify-center space-x-2">
                               <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
@@ -844,6 +848,18 @@ export default function AdminDashboard() {
                               {HOSTS.includes(person) && <span>👑</span>}
                             </div>
                           ))}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <p className="text-sm text-gray-600">Check team scores above, then continue:</p>
+                          <Button 
+                            onClick={manualNextRound} 
+                            size="lg" 
+                            className="bg-purple-600 hover:bg-purple-700"
+                          >
+                            {gameState.currentRound >= QUESTIONS.length - 1 ? '🏆 Finish Game' : '➡️ Next Round'}
+                          </Button>
+                          <p className="text-xs text-gray-500">Auto-advance in 20 seconds</p>
                         </div>
                       </div>
                     )}
