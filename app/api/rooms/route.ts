@@ -7,6 +7,7 @@ import { z } from 'zod'
 const createRoomSchema = z.object({
   name: z.string().min(1).max(100),
   code: z.string().optional(),
+  hostToken: z.string().optional(), // Allow custom host token
   participants: z.array(z.object({
     name: z.string(),
     isHost: z.boolean(),
@@ -22,7 +23,7 @@ const createRoomSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, code: requestedCode, participants, questions } = createRoomSchema.parse(body)
+    const { name, code: requestedCode, hostToken: customHostToken, participants, questions } = createRoomSchema.parse(body)
     
     let code: string
     
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         code,
-        hostToken: crypto.randomUUID(),
+        hostToken: customHostToken || crypto.randomUUID(),
       },
     })
     

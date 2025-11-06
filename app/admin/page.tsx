@@ -443,11 +443,12 @@ export default function AdminDashboard() {
   }
 
   const migrateLocalData = async () => {
-    // Try to get hostToken from localStorage or gameState
-    let hostToken = localStorage.getItem('hostToken')
+    // Use hardcoded host token for WEEKEND2024
+    const hostToken = 'weekend2024-admin-token'
+    localStorage.setItem('hostToken', hostToken)
     
-    // If no hostToken in localStorage, try to get room data first
-    if (!hostToken || !gameState.roomId) {
+    // Always ensure WEEKEND2024 room exists
+    if (!gameState.roomId) {
       try {
         const response = await fetch('/api/rooms?code=WEEKEND2024')
         if (response.ok) {
@@ -480,6 +481,7 @@ export default function AdminDashboard() {
               body: JSON.stringify({
                 name: 'Friends Weekend Game',
                 code: 'WEEKEND2024',
+                hostToken: 'weekend2024-admin-token', // Fixed host token
                 participants: ALL_PEOPLE.map(name => ({
                   name,
                   isHost: HOSTS.includes(name),
