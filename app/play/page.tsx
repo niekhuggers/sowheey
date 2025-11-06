@@ -134,9 +134,14 @@ function PlayGameContent() {
         // Load teams from database
         let teams = []
         try {
+          console.log('Loading teams for room:', roomData.id)
           const teamsResponse = await fetch(`/api/teams?roomId=${roomData.id}`)
+          console.log('Teams response status:', teamsResponse.status)
+          
           if (teamsResponse.ok) {
             const teamsData = await teamsResponse.json()
+            console.log('Raw teams data:', teamsData)
+            
             // Transform database teams to match expected format
             teams = teamsData.map((team: any) => ({
               id: team.id,
@@ -144,6 +149,9 @@ function PlayGameContent() {
               members: team.members.map((member: any) => member.participant.name),
               score: team.aggregateScores?.[0]?.totalScore || 0
             }))
+            console.log('Transformed teams:', teams)
+          } else {
+            console.error('Failed to fetch teams:', await teamsResponse.text())
           }
         } catch (error) {
           console.error('Error loading teams:', error)
@@ -160,6 +168,7 @@ function PlayGameContent() {
           participants: roomData.participants,
           questions: roomData.questions
         }
+        console.log('Setting game state with teams:', gameState.teams)
         setGameState(gameState)
         return
       }
@@ -326,16 +335,20 @@ function PlayGameContent() {
 
   // Team Selection
   if (!teamId) {
+    console.log('Team selection screen - teams available:', gameState.teams)
+    console.log('Number of teams:', gameState.teams?.length)
+    
     return (
       <div className="min-h-screen p-4">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold">👥 Selecteer je Team</h1>
             <p className="text-gray-600">Room: {gameState.roomCode}</p>
+            <p className="text-sm text-gray-500">Teams found: {gameState.teams?.length || 0}</p>
           </div>
 
           <div className="space-y-4">
-            {gameState.teams.map((team: any) => (
+            {gameState.teams?.length > 0 ? gameState.teams.map((team: any) => (
               <Card key={team.id} className="cursor-pointer hover:bg-gray-50" onClick={() => selectTeam(team.id)}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -349,7 +362,12 @@ function PlayGameContent() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )) : (
+              <div className="text-center p-8">
+                <p className="text-gray-500 mb-4">No teams found</p>
+                <p className="text-sm text-gray-400">Teams need to be created in the admin panel first</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
