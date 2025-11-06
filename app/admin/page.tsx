@@ -604,34 +604,84 @@ export default function AdminDashboard() {
                     {QUESTIONS[currentPrefillQuestion].includes('Fuck, Marry, Kill') ? (
                       <div className="space-y-4">
                         <h3 className="font-medium text-center">Assign actions for {ALL_PEOPLE[currentPrefillPerson]}:</h3>
-                        {['Aylin', 'Keone', 'Ceana'].map(person => (
-                          <div key={person} className="border rounded-lg p-3">
-                            <h4 className="font-medium text-center mb-2">{person}</h4>
+                        
+                        {/* Show current F/M/K assignments */}
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-sm font-medium mb-2">Current Assignments:</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {['Fuck', 'Marry', 'Kill'].map((action, index) => {
+                              const currentPlayerName = ALL_PEOPLE[currentPrefillPerson]
+                              const currentRanking = prefillAnswers[currentPlayerName]?.[currentPrefillQuestion] || ['', '', '']
+                              const assignedPerson = currentRanking[index]
+                              return (
+                                <div key={action} className="text-center p-2 border rounded">
+                                  <div className={`font-medium text-xs ${
+                                    action === 'Fuck' ? 'text-red-600' :
+                                    action === 'Marry' ? 'text-green-600' :
+                                    'text-gray-600'
+                                  }`}>{action}</div>
+                                  <div className="font-medium">
+                                    {assignedPerson ? (
+                                      <span>{assignedPerson}</span>
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                        {['Aylin', 'Keone', 'Ceana'].map(target => (
+                          <div key={target} className="border rounded-lg p-3">
+                            <h4 className="font-medium text-center mb-2">{target}</h4>
                             <div className="grid grid-cols-3 gap-2">
-                              {['Fuck', 'Marry', 'Kill'].map(action => (
-                                <Button
-                                  key={action}
-                                  variant={prefillAnswers[ALL_PEOPLE[currentPrefillPerson]]?.[currentPrefillQuestion]?.includes(person) && 
-                                    prefillAnswers[ALL_PEOPLE[currentPrefillPerson]][currentPrefillQuestion].indexOf(person) === ['Fuck', 'Marry', 'Kill'].indexOf(action) 
-                                    ? 'primary' : 'secondary'}
-                                  onClick={() => {
-                                    const newAnswers = { ...prefillAnswers }
-                                    const person = ALL_PEOPLE[currentPrefillPerson]
-                                    const ranking = []
-                                    if (action === 'Fuck') ranking[0] = person
-                                    else if (action === 'Marry') ranking[1] = person  
-                                    else ranking[2] = person
-                                    
-                                    if (!newAnswers[person]) newAnswers[person] = {}
-                                    if (!newAnswers[person][currentPrefillQuestion]) newAnswers[person][currentPrefillQuestion] = []
-                                    newAnswers[person][currentPrefillQuestion] = ranking
-                                    setPrefillAnswers(newAnswers)
-                                  }}
-                                  size="sm"
-                                >
-                                  {action}
-                                </Button>
-                              ))}
+                              {['Fuck', 'Marry', 'Kill'].map(action => {
+                                const currentPlayerName = ALL_PEOPLE[currentPrefillPerson]
+                                const currentRanking = prefillAnswers[currentPlayerName]?.[currentPrefillQuestion] || ['', '', '']
+                                const actionIndex = ['Fuck', 'Marry', 'Kill'].indexOf(action)
+                                const isSelected = currentRanking[actionIndex] === target
+                                
+                                return (
+                                  <Button
+                                    key={action}
+                                    variant={isSelected ? 'primary' : 'secondary'}
+                                    onClick={() => {
+                                      const newAnswers = { ...prefillAnswers }
+                                      
+                                      if (!newAnswers[currentPlayerName]) {
+                                        newAnswers[currentPlayerName] = {}
+                                      }
+                                      if (!newAnswers[currentPlayerName][currentPrefillQuestion]) {
+                                        newAnswers[currentPlayerName][currentPrefillQuestion] = ['', '', '']
+                                      }
+                                      
+                                      const newRanking = [...newAnswers[currentPlayerName][currentPrefillQuestion]]
+                                      
+                                      // Remove this target from any other position
+                                      for (let i = 0; i < newRanking.length; i++) {
+                                        if (newRanking[i] === target) {
+                                          newRanking[i] = ''
+                                        }
+                                      }
+                                      
+                                      // Set this target for this action
+                                      newRanking[actionIndex] = target
+                                      
+                                      newAnswers[currentPlayerName][currentPrefillQuestion] = newRanking
+                                      setPrefillAnswers(newAnswers)
+                                    }}
+                                    size="sm"
+                                    className={
+                                      action === 'Fuck' ? 'border-red-300 hover:bg-red-50' :
+                                      action === 'Marry' ? 'border-green-300 hover:bg-green-50' :
+                                      'border-gray-700 hover:bg-gray-100'
+                                    }
+                                  >
+                                    {action}
+                                  </Button>
+                                )
+                              })}
                             </div>
                           </div>
                         ))}
