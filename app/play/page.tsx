@@ -125,9 +125,33 @@ function PlayGameContent() {
     if (savedTeamId) {
       setTeamId(parseInt(savedTeamId))
     }
-  }, [])
+  }, [searchParams])
 
-  const loadGameState = (code: string) => {
+  const loadGameState = async (code: string) => {
+    try {
+      // First try to load from database
+      const response = await fetch(`/api/rooms?code=${code}`)
+      if (response.ok) {
+        const roomData = await response.json()
+        const gameState = {
+          isSetup: true,
+          currentRound: 0,
+          roundStatus: 'waiting',
+          teams: [],
+          roomCode: code,
+          answersPrefilled: false,
+          roomId: roomData.id,
+          participants: roomData.participants,
+          questions: roomData.questions
+        }
+        setGameState(gameState)
+        return
+      }
+    } catch (error) {
+      console.error('Error loading room from database:', error)
+    }
+
+    // Fallback to localStorage
     const savedState = localStorage.getItem('weekendGameState')
     if (savedState) {
       const state = JSON.parse(savedState)
@@ -136,6 +160,7 @@ function PlayGameContent() {
         return
       }
     }
+    
     // If no valid game state, redirect to main page
     router.push('/')
   }
