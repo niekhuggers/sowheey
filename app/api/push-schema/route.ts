@@ -4,7 +4,7 @@ import { promisify } from 'util'
 
 const execAsync = promisify(exec)
 
-export async function POST() {
+export async function GET() {
   try {
     // Run prisma db push to create all tables in Neon database
     console.log('Running prisma db push...')
