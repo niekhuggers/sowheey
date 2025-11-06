@@ -175,47 +175,40 @@ function PlayGameContent() {
 
   const loadGameState = async (code: string) => {
     try {
-      // First try to load from database
-      const response = await fetch(`/api/rooms?code=${code}`)
+      // Load complete game state from the same API that admin uses
+      const response = await fetch(`/api/game-state?roomCode=${code}&hostToken=weekend2024-admin-token`)
       if (response.ok) {
-        const roomData = await response.json()
+        const gameStateData = await response.json()
         
-        // Load teams from database
-        let teams = []
-        try {
-          console.log('Loading teams for room:', roomData.id)
-          const teamsResponse = await fetch(`/api/teams?roomId=${roomData.id}`)
-          console.log('Teams response status:', teamsResponse.status)
-          
-          if (teamsResponse.ok) {
-            const teamsData = await teamsResponse.json()
-            console.log('Raw teams data:', teamsData)
-            
-            // Transform database teams to match expected format
-            teams = teamsData.map((team: any) => ({
-              id: team.id,
-              name: team.name,
-              members: team.members.map((member: any) => member.participant.name),
-              score: team.aggregateScores?.[0]?.totalScore || 0
-            }))
-            console.log('Transformed teams:', teams)
-          } else {
-            console.error('Failed to fetch teams:', await teamsResponse.text())
+        console.log('Play page loaded game state:', gameStateData)
+        
+        // Map database game state to play page state (same as admin)
+        const roundStatus = (() => {
+          if (gameStateData.room.gameState === 'SETUP' || gameStateData.room.gameState === 'PRE_EVENT') {
+            return 'waiting'
           }
-        } catch (error) {
-          console.error('Error loading teams:', error)
-        }
+          
+          const currentRound = gameStateData.rounds[gameStateData.room.currentRound]
+          if (!currentRound) return 'waiting'
+          
+          switch (currentRound.status) {
+            case 'ACTIVE': return 'active'
+            case 'CLOSED': return 'revealing'
+            case 'REVEALED': return 'waiting' // Ready for next round
+            default: return 'waiting'
+          }
+        })()
         
         const gameState = {
           isSetup: true,
-          currentRound: 0,
-          roundStatus: 'waiting',
-          teams: teams,
+          currentRound: gameStateData.room.currentRound,
+          roundStatus: roundStatus,
+          teams: gameStateData.teams,
           roomCode: code,
-          answersPrefilled: false,
-          roomId: roomData.id,
-          participants: roomData.participants,
-          questions: roomData.questions
+          answersPrefilled: gameStateData.room.gameState !== 'SETUP',
+          roomId: gameStateData.room.id,
+          participants: gameStateData.participants,
+          questions: gameStateData.questions
         }
         console.log('Setting game state with teams:', gameState.teams)
         setGameState(gameState)
