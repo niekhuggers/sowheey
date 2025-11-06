@@ -74,6 +74,14 @@ interface GameState {
     category: string
     sortOrder: number
   }>
+  rounds?: Array<{
+    id: string
+    roundNumber: number
+    status: string
+    communityRank1Id?: string | null
+    communityRank2Id?: string | null
+    communityRank3Id?: string | null
+  }>
 }
 
 export default function AdminDashboard() {
@@ -343,7 +351,8 @@ export default function AdminDashboard() {
           answersPrefilled: gameStateData.room.gameState !== 'SETUP',
           roomId: gameStateData.room.id,
           participants: gameStateData.participants,
-          questions: gameStateData.questions
+          questions: gameStateData.questions,
+          rounds: gameStateData.rounds
         }
         setGameState(newState)
         
@@ -950,14 +959,36 @@ export default function AdminDashboard() {
                     {gameState.roundStatus === 'revealing' && (
                       <div className="text-center">
                         <div className="text-lg font-medium mb-4">🎉 Results Revealed!</div>
+                        <div className="text-sm text-gray-600 mb-4">Community Top 3 (calculated from pre-submissions)</div>
                         <div className="space-y-2 mb-6">
-                          {COMMUNITY_ANSWERS[gameState.currentRound].map((person, index) => (
-                            <div key={person} className="flex items-center justify-center space-x-2">
-                              <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
-                              <span className="font-medium">{person}</span>
-                              {HOSTS.includes(person) && <span>👑</span>}
-                            </div>
-                          ))}
+                          {(() => {
+                            // Get the actual revealed round from database
+                            const revealedRound = gameState.rounds?.[gameState.currentRound]
+                            
+                            // If we have the actual community ranking from database, use it
+                            if (revealedRound?.communityRank1Id) {
+                              const rank1 = gameState.participants?.find((p: any) => p.id === revealedRound.communityRank1Id)
+                              const rank2 = gameState.participants?.find((p: any) => p.id === revealedRound.communityRank2Id)
+                              const rank3 = gameState.participants?.find((p: any) => p.id === revealedRound.communityRank3Id)
+                              
+                              return [rank1?.name, rank2?.name, rank3?.name].filter(Boolean).map((person, index) => (
+                                <div key={person} className="flex items-center justify-center space-x-2">
+                                  <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
+                                  <span className="font-medium">{person}</span>
+                                  {HOSTS.includes(person || '') && <span>👑</span>}
+                                </div>
+                              ))
+                            }
+                            
+                            // Fallback to hardcoded if database data not available
+                            return COMMUNITY_ANSWERS[gameState.currentRound]?.map((person, index) => (
+                              <div key={person} className="flex items-center justify-center space-x-2">
+                                <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
+                                <span className="font-medium">{person}</span>
+                                {HOSTS.includes(person) && <span>👑</span>}
+                              </div>
+                            )) || []
+                          })()}
                         </div>
                         
                         <div className="space-y-3">
