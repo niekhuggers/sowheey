@@ -278,8 +278,21 @@ export default function AdminDashboard() {
 
   const loadGameState = async () => {
     try {
+      // First, debug what's in the database
+      console.log('🔍 Checking database contents...')
+      const debugResponse = await fetch('/api/debug-db')
+      if (debugResponse.ok) {
+        const debugData = await debugResponse.json()
+        console.log('Database debug data:', debugData)
+      } else {
+        console.error('Debug API failed:', await debugResponse.text())
+      }
+
       // Load complete game state from new API
+      console.log('🔄 Loading game state with token: weekend2024-admin-token')
       const response = await fetch(`/api/game-state?roomCode=WEEKEND2024&hostToken=weekend2024-admin-token`)
+      console.log('Game-state API response status:', response.status)
+      
       if (response.ok) {
         const gameStateData = await response.json()
         
@@ -319,7 +332,9 @@ export default function AdminDashboard() {
         // Load prefilled answers from database
         await loadPrefilledAnswersFromDatabase(gameStateData)
       } else {
-        console.error('WEEKEND2024 room not found in database')
+        const errorText = await response.text()
+        console.error('Game-state API failed:', response.status, errorText)
+        console.error('WEEKEND2024 room not found or unauthorized')
       }
     } catch (error) {
       console.error('Error loading room:', error)
