@@ -184,10 +184,22 @@ NEXT_PUBLIC_APP_URL         # Base URL for QR code generation
 - Verify round status is 'CLOSED' before revealing results
 - Review community ranking algorithm in `lib/utils.ts`
 
-## Recent Architecture Notes
+## Recent Architecture Changes
+
+### localStorage to Database Migration (November 2024)
+- **Removed localStorage fallbacks** - All game data now database-first
+- **Socket.IO integration** - Admin and play interfaces now communicate via real-time Socket.IO events
+- **Critical localStorage kept**: `hostToken`, `deviceToken`, `roomCode`, `selectedTeamId` for authentication/session
+- **Migration status**: Pre-filled answers and game state moved to database, team submissions pending
 
 ### PostgreSQL Migration
 - Schema updated from SQLite to PostgreSQL for Railway deployment
 - `railway:setup` command runs `prisma db push` to create tables
 - Environment variables auto-injected by Railway services
 - Production deployment requires PostgreSQL connection string
+
+### Known Issues & TODOs
+- **FMK Questions**: Special handling needed for F/M/K questions with fixed options (Aylin/Keone/Ceana) that aren't participants
+- **Admin API**: `/api/admin/pre-submissions` created for admin panel to save pre-submissions without invite tokens
+- **Socket.IO Events**: Admin panel sends `start-round`, `reveal-results`, `next-round`, `complete-game` actions
+- **TypeScript**: Some `any` types remain in Socket.IO event handlers for quick fixes
