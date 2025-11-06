@@ -90,15 +90,32 @@ io.on('connection', (socket) => {
     action: string;
     payload: any;
   }) => {
+    console.log('🎯 Socket.IO received host-action:', data.action)
+    console.log('Room code:', data.roomCode)
+    console.log('Host token provided:', data.hostToken)
+    
     try {
       const room = await prisma.room.findUnique({
         where: { code: data.roomCode }
       })
 
-      if (!room || room.hostToken !== data.hostToken) {
+      if (!room) {
+        console.error('❌ Room not found:', data.roomCode)
+        socket.emit('error', { message: 'Room not found' })
+        return
+      }
+
+      console.log('Room found, expected host token:', room.hostToken)
+
+      if (room.hostToken !== data.hostToken) {
+        console.error('❌ Host token mismatch!')
+        console.error('Expected:', room.hostToken)
+        console.error('Received:', data.hostToken)
         socket.emit('error', { message: 'Unauthorized' })
         return
       }
+
+      console.log('✅ Host token validated, proceeding with action:', data.action)
 
       switch (data.action) {
         case 'add-participant':
@@ -174,6 +191,9 @@ io.on('connection', (socket) => {
           break
 
         case 'start-round':
+          console.log('🚀 Processing start-round action')
+          console.log('Payload:', data.payload)
+          
           const round = await prisma.round.create({
             data: {
               roomId: room.id,
@@ -182,7 +202,11 @@ io.on('connection', (socket) => {
               status: 'OPEN'
             }
           })
+          console.log('✅ Round created in database:', round.id)
+          console.log('📡 Broadcasting round-started to room:', data.roomCode)
+          
           io.to(data.roomCode).emit('round-started', round)
+          console.log('✅ round-started event emitted')
           break
 
         case 'close-round':
