@@ -298,6 +298,12 @@ export default function AdminDashboard() {
         const gameStateData = await response.json()
         
         console.log('Loaded game state from database:', gameStateData)
+        console.log('Teams from API:', gameStateData.teams)
+        console.log('Team scores:', gameStateData.teams.map((t: any) => ({ 
+          name: t.name, 
+          totalScore: t.totalScore,
+          rank: t.rank 
+        })))
         
         
         // Map database game state to admin UI state
