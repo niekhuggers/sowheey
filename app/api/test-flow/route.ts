@@ -1,0 +1,189 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+
+export async function POST(request: NextRequest) {
+  try {
+    const testResults = []
+    
+    testResults.push('🚀 Starting end-to-end game flow test...')
+    
+    // Step 1: Check if WEEKEND2024 room exists
+    const room = await prisma.room.findUnique({
+      where: { code: 'WEEKEND2024' },
+      include: {
+        participants: true,
+        teams: { include: { members: { include: { participant: true } } } },
+        questions: { orderBy: { sortOrder: 'asc' } }
+      }
+    })
+    
+    if (!room) {
+      return NextResponse.json({ error: 'WEEKEND2024 room not found' })
+    }
+    
+    testResults.push(`✅ Room found: ${room.name} (${room.participants.length} participants, ${room.teams.length} teams)`)
+    
+    // Step 2: Simulate device joining and pairing to a team
+    const testTeam = room.teams[0] // Use first team
+    if (!testTeam) {
+      return NextResponse.json({ error: 'No teams found in room' })
+    }
+    
+    testResults.push(`📱 Simulating device pairing to team: ${testTeam.name}`)
+    
+    // Create a test device
+    const testDeviceToken = `test-device-${Date.now()}`
+    const device = await prisma.device.create({
+      data: {
+        roomId: room.id,
+        teamId: testTeam.id,
+        deviceToken: testDeviceToken
+      }
+    })
+    
+    testResults.push(`✅ Device created and paired to team`)
+    
+    // Step 3: Update room to LIVE_EVENT state
+    await prisma.room.update({
+      where: { id: room.id },
+      data: {
+        gameState: 'LIVE_EVENT',
+        currentRound: 0
+      }
+    })
+    
+    testResults.push(`🎮 Room state updated to LIVE_EVENT`)
+    
+    // Step 4: Create a test round
+    const testQuestion = room.questions[0]
+    if (!testQuestion) {
+      return NextResponse.json({ error: 'No questions found in room' })
+    }
+    
+    let round = await prisma.round.create({
+      data: {
+        roomId: room.id,
+        questionId: testQuestion.id,
+        roundNumber: 1,
+        status: 'ACTIVE'
+      }
+    })
+    
+    testResults.push(`🎯 Round 1 started with question: "${testQuestion.text}"`)
+    
+    // Step 5: Simulate team submission
+    const teamMembers = testTeam.members
+    const availableParticipants = room.participants.filter(p => !['Niek', 'Joep', 'Merijn'].includes(p.name))
+    
+    if (availableParticipants.length < 3) {
+      return NextResponse.json({ error: 'Not enough participants for ranking' })
+    }
+    
+    const testRanking = {
+      rank1Id: availableParticipants[0].id,
+      rank2Id: availableParticipants[1].id,
+      rank3Id: availableParticipants[2].id
+    }
+    
+    testResults.push(`📝 Submitting test ranking: ${availableParticipants[0].name}, ${availableParticipants[1].name}, ${availableParticipants[2].name}`)
+    
+    // Create submissions for each team member
+    for (const member of teamMembers) {
+      await prisma.submission.create({
+        data: {
+          roundId: round.id,
+          participantId: member.participantId,
+          rank1Id: testRanking.rank1Id,
+          rank2Id: testRanking.rank2Id,
+          rank3Id: testRanking.rank3Id
+        }
+      })
+    }
+    
+    testResults.push(`✅ Submissions created for ${teamMembers.length} team members`)
+    
+    // Step 6: Close the round
+    round = await prisma.round.update({
+      where: { id: round.id },
+      data: { status: 'CLOSED' }
+    })
+    
+    testResults.push(`🔒 Round closed, ready for scoring`)
+    
+    // Step 7: Simulate scoring calculation
+    testResults.push(`🧮 Calculating scores...`)
+    
+    const calculateResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/rounds/${round.id}/calculate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hostToken: room.hostToken })
+    })
+    
+    if (!calculateResponse.ok) {
+      testResults.push(`❌ Scoring calculation failed: ${calculateResponse.status}`)
+      return NextResponse.json({ testResults, error: 'Scoring failed' })
+    }
+    
+    const communityTop3 = await calculateResponse.json()
+    testResults.push(`✅ Community ranking calculated`)
+    testResults.push(`🏆 Community Top 3: ${communityTop3.map((p: any) => p.participantId).join(', ')}`)
+    
+    // Step 8: Reveal results
+    await prisma.round.update({
+      where: { id: round.id },
+      data: { 
+        status: 'REVEALED',
+        communityRank1Id: communityTop3[0]?.participantId,
+        communityRank2Id: communityTop3[1]?.participantId,
+        communityRank3Id: communityTop3[2]?.participantId,
+        completedAt: new Date()
+      }
+    })
+    
+    testResults.push(`🎊 Results revealed!`)
+    
+    // Step 9: Check final scores
+    const scores = await prisma.score.findMany({
+      where: { roundId: round.id },
+      include: { participant: true }
+    })
+    
+    testResults.push(`📊 Final scores:`)
+    scores.forEach(score => {
+      testResults.push(`   ${score.participant.name}: ${score.points} points`)
+    })
+    
+    // Step 10: Check team aggregate scores
+    const teamScores = await prisma.teamAggregateScore.findMany({
+      where: { roundId: round.id },
+      include: { team: true },
+      orderBy: { totalScore: 'desc' }
+    })
+    
+    testResults.push(`🏆 Team scores:`)
+    teamScores.forEach(teamScore => {
+      testResults.push(`   ${teamScore.team.name}: ${teamScore.totalScore} points (Rank ${teamScore.rank})`)
+    })
+    
+    // Cleanup: Remove test device
+    await prisma.device.delete({ where: { id: device.id } })
+    testResults.push(`🧹 Test device cleaned up`)
+    
+    testResults.push(`✅ End-to-end test completed successfully!`)
+    
+    return NextResponse.json({ 
+      success: true, 
+      testResults,
+      roundId: round.id,
+      teamUsed: testTeam.name,
+      scoresGenerated: scores.length
+    })
+    
+  } catch (error) {
+    console.error('End-to-end test failed:', error)
+    return NextResponse.json({
+      error: 'Test failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
+}
