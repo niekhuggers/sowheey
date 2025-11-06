@@ -1285,7 +1285,7 @@ export default function AdminDashboard() {
                     <Button
                       onClick={clearAllDevicePairings}
                       size="sm"
-                      variant="outline"
+                      variant="secondary"
                       className="text-orange-600 hover:text-orange-700"
                     >
                       🧹 Clear Pairings
