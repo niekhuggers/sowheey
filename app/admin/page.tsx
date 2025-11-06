@@ -454,11 +454,7 @@ export default function AdminDashboard() {
         if (response.ok) {
           const roomData = await response.json()
           if (roomData.hostToken) {
-            // For WEEKEND2024, we can use the host token directly if it's the admin
-            hostToken = roomData.hostToken
-            if (hostToken) {
-              localStorage.setItem('hostToken', hostToken)
-            }
+            // hostToken is already set to the fixed value above - no need to reassign
             
             // Update gameState if needed
             if (!gameState.roomId) {
