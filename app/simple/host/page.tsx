@@ -71,37 +71,27 @@ export default function SimpleHost() {
   const [allAnswers, setAllAnswers] = useState<any>({})
 
   useEffect(() => {
-    // Load saved answers and generate teams
-    const saved = localStorage.getItem('friendsWeekendAnswers')
-    if (saved) {
-      setAllAnswers(JSON.parse(saved))
-    }
+    // TODO: Load answers from database instead of localStorage
+    setAllAnswers({})
 
-    // Generate teams if not exists
-    const savedTeams = localStorage.getItem('friendsWeekendTeams')
-    if (savedTeams) {
-      const teams = JSON.parse(savedTeams)
-      setGameState(prev => ({ ...prev, teams }))
-    } else {
-      // Generate random teams from players only (not hosts)
-      const shuffledPlayers = [...PLAYERS].sort(() => Math.random() - 0.5)
-      const teams: any[] = []
-      
-      for (let i = 0; i < shuffledPlayers.length; i += 2) {
-        if (i + 1 < shuffledPlayers.length) {
-          teams.push({
-            id: i / 2 + 1,
-            name: `Team ${i / 2 + 1}`,
-            members: [shuffledPlayers[i], shuffledPlayers[i + 1]],
-            submitted: false,
-            score: 0
-          })
-        }
+    // TODO: Load teams from database instead of localStorage
+    // Generate random teams from players only (not hosts)
+    const shuffledPlayers = [...PLAYERS].sort(() => Math.random() - 0.5)
+    const teams: any[] = []
+    
+    for (let i = 0; i < shuffledPlayers.length; i += 2) {
+      if (i + 1 < shuffledPlayers.length) {
+        teams.push({
+          id: i / 2 + 1,
+          name: `Team ${i / 2 + 1}`,
+          members: [shuffledPlayers[i], shuffledPlayers[i + 1]],
+          submitted: false,
+          score: 0
+        })
       }
-      
-      localStorage.setItem('friendsWeekendTeams', JSON.stringify(teams))
-      setGameState(prev => ({ ...prev, teams }))
     }
+    
+    setGameState(prev => ({ ...prev, teams }))
   }, [])
 
   const startRound = () => {
@@ -225,8 +215,7 @@ export default function SimpleHost() {
           <Button 
             variant="secondary"
             onClick={() => {
-              localStorage.removeItem('friendsWeekendAnswers')
-              localStorage.removeItem('friendsWeekendTeams')
+              // TODO: Reset game data in database instead of localStorage
               window.location.reload()
             }}
           >

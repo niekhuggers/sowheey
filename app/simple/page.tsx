@@ -62,13 +62,9 @@ export default function SimpleFriendsWeekend() {
     const step = urlParams.get('step')
     if (step === 'play') {
       setCurrentStep('play')
-      // Load existing game data
-      const saved = localStorage.getItem('friendsWeekendAnswers')
-      if (saved) {
-        const answers = JSON.parse(saved)
-        const teams = generateRandomTeams()
-        setGameData({ answers, teams })
-      }
+      // TODO: Load game data from database instead of localStorage
+      const teams = generateRandomTeams()
+      setGameData({ answers: {}, teams })
     }
   }, [])
 
@@ -114,7 +110,7 @@ export default function SimpleFriendsWeekend() {
 
   const generateTeams = () => {
     const teams = generateRandomTeams()
-    localStorage.setItem('friendsWeekendTeams', JSON.stringify(teams))
+    // TODO: Save teams to database instead of localStorage
     setGameData({...gameData, teams})
     setCurrentStep('play')
   }

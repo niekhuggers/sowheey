@@ -133,19 +133,14 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
-    // Check if already authenticated
-    const auth = localStorage.getItem('adminAuthenticated')
-    if (auth === 'true') {
-      setIsAuthenticated(true)
-      loadGameState()
-    }
+    // Auto-load game state without localStorage authentication check
+    loadGameState()
   }, [])
 
   const authenticate = () => {
     // Simple password check - in production use proper auth
     if (adminPassword === 'weekend2024') {
       setIsAuthenticated(true)
-      localStorage.setItem('adminAuthenticated', 'true')
       loadGameState()
     } else {
       alert('Verkeerd wachtwoord!')
@@ -293,20 +288,11 @@ export default function AdminDashboard() {
           }
           setGameState(newState)
         } else {
-          // Fallback to localStorage
-          const savedState = localStorage.getItem('weekendGameState')
-          if (savedState) {
-            setGameState(JSON.parse(savedState))
-          }
+          console.log('Room not found')
         }
       }
     } catch (error) {
       console.error('Error loading room:', error)
-      // Fallback to localStorage
-      const savedState = localStorage.getItem('weekendGameState')
-      if (savedState) {
-        setGameState(JSON.parse(savedState))
-      }
     }
     
     // Data is loaded from database via loadPrefilledAnswersFromDatabase()
@@ -315,7 +301,6 @@ export default function AdminDashboard() {
 
   const saveGameState = (newState: GameState) => {
     setGameState(newState)
-    localStorage.setItem('weekendGameState', JSON.stringify(newState))
   }
 
 
@@ -415,31 +400,29 @@ export default function AdminDashboard() {
     }
     setPrefillAnswers(newAnswers)
     
-    // Save to database if we have room data
-    if (gameState.roomId && gameState.participants && gameState.questions) {
+    // Save to database using admin endpoint
+    if (gameState.roomCode && gameState.participants && gameState.questions) {
       try {
-        const participant = gameState.participants.find(p => p.name === personName)
         const question = gameState.questions[currentPrefillQuestion]
         
-        if (participant && question && rankings.length === 3) {
+        if (question && rankings.length === 3) {
           // Convert ranking names to participant IDs
           const rank1Participant = gameState.participants.find(p => p.name === rankings[0])
           const rank2Participant = gameState.participants.find(p => p.name === rankings[1])
           const rank3Participant = gameState.participants.find(p => p.name === rankings[2])
           
           if (rank1Participant && rank2Participant && rank3Participant) {
-            const response = await fetch('/api/pre-submissions', {
+            const response = await fetch('/api/admin/pre-submissions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                inviteToken: participant.inviteToken,
                 roomCode: gameState.roomCode,
-                submissions: [{
-                  questionId: question.id,
-                  rank1ParticipantId: rank1Participant.id,
-                  rank2ParticipantId: rank2Participant.id,
-                  rank3ParticipantId: rank3Participant.id,
-                }]
+                hostToken: 'weekend2024-admin-token',
+                participantName: personName,
+                questionId: question.id,
+                rank1ParticipantId: rank1Participant.id,
+                rank2ParticipantId: rank2Participant.id,
+                rank3ParticipantId: rank3Participant.id,
               })
             })
             
@@ -452,9 +435,6 @@ export default function AdminDashboard() {
         console.error('Error saving to database:', error)
       }
     }
-    
-    // Also save to localStorage as backup
-    localStorage.setItem('friendsWeekendAnswers', JSON.stringify(newAnswers))
 
     // Move to next question/person automatically
     if (currentPrefillQuestion < QUESTIONS.length - 1) {
@@ -510,23 +490,14 @@ export default function AdminDashboard() {
   const migrateLocalData = async () => {
     // Use hardcoded host token for WEEKEND2024
     const hostToken = 'weekend2024-admin-token'
-    localStorage.setItem('hostToken', hostToken)
     
     // Skip complex room loading - just proceed with migration using hardcoded room code
     // The migration API will handle room validation
 
-    const friendsWeekendAnswers = localStorage.getItem('friendsWeekendAnswers')
-    const weekendGameState = localStorage.getItem('weekendGameState')
-    
-    let teams: any[] = []
-    if (weekendGameState) {
-      const gameData = JSON.parse(weekendGameState)
-      teams = gameData.teams || []
-    }
-
+    // Database-first approach - no localStorage migration needed anymore
     const localData = {
-      friendsWeekendAnswers: friendsWeekendAnswers ? JSON.parse(friendsWeekendAnswers) : null,
-      teams: teams
+      friendsWeekendAnswers: null,
+      teams: []
     }
 
     setLoading(true)
@@ -545,11 +516,6 @@ export default function AdminDashboard() {
       
       if (response.ok) {
         alert(`✅ Migration successful!\n${result.message}`)
-        // Optionally clear localStorage after successful migration
-        if (confirm('Clear local storage after successful migration?')) {
-          localStorage.removeItem('friendsWeekendAnswers')
-          localStorage.removeItem('friendsWeekendTeams')
-        }
       } else {
         alert(`❌ Migration failed: ${result.error}\nDetails: ${result.details || 'Unknown error'}`)
       }
@@ -561,23 +527,17 @@ export default function AdminDashboard() {
   }
 
   const debugMigration = async () => {
-    const friendsWeekendAnswers = localStorage.getItem('friendsWeekendAnswers')
-    const weekendGameState = localStorage.getItem('weekendGameState')
-    
+    // Database-first approach - debug from database state
     let teams: any[] = []
-    if (weekendGameState) {
-      const gameData = JSON.parse(weekendGameState)
-      teams = gameData.teams || []
-    }
 
     const localData = {
-      friendsWeekendAnswers: friendsWeekendAnswers ? JSON.parse(friendsWeekendAnswers) : null,
+      friendsWeekendAnswers: null,
       teams: teams
     }
 
     console.log('=== DEBUG MIGRATION DATA ===')
-    console.log('Raw friendsWeekendAnswers:', friendsWeekendAnswers)
-    console.log('Raw weekendGameState:', weekendGameState)
+    console.log('Database-first approach - no localStorage data')
+    console.log('Current gameState:', gameState)
     console.log('Parsed teams:', teams)
     console.log('Final localData:', localData)
 
@@ -612,8 +572,6 @@ export default function AdminDashboard() {
         questions: gameState.questions
       }
       saveGameState(newState)
-      localStorage.removeItem('friendsWeekendAnswers')
-      localStorage.removeItem('friendsWeekendTeams')
       setPrefillAnswers({})
       
       // Re-initialize empty answers
@@ -630,7 +588,6 @@ export default function AdminDashboard() {
 
   const logout = () => {
     setIsAuthenticated(false)
-    localStorage.removeItem('adminAuthenticated')
   }
 
   if (!isAuthenticated) {

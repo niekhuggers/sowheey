@@ -31,15 +31,6 @@ const QUESTIONS = [
 ]
 
 // Helper functions for processing pre-filled answers
-const loadPrefilledAnswers = (): any => {
-  try {
-    const saved = localStorage.getItem('friendsWeekendAnswers')
-    return saved ? JSON.parse(saved) : null
-  } catch (error) {
-    console.error('Error loading prefilled answers:', error)
-    return null
-  }
-}
 
 const calculateCommunityRanking = (questionIndex: number, prefilledAnswers: any): string[] => {
   if (!prefilledAnswers) {
@@ -207,15 +198,6 @@ function PlayGameContent() {
       console.error('Error loading room from database:', error)
     }
 
-    // Fallback to localStorage
-    const savedState = localStorage.getItem('weekendGameState')
-    if (savedState) {
-      const state = JSON.parse(savedState)
-      if (state.roomCode === code) {
-        setGameState(state)
-        return
-      }
-    }
     
     // If no valid game state, redirect to main page
     router.push('/')
@@ -273,60 +255,18 @@ function PlayGameContent() {
     if (rankings.length !== 3) return
 
     // Get community ranking for scoring
-    const prefilledAnswers = loadPrefilledAnswers()
-    const communityRanking = calculateCommunityRanking(gameState.currentRound, prefilledAnswers)
+    const communityRanking = calculateCommunityRanking(gameState.currentRound, null)
     
     // Calculate team's score for this round
     const teamRanking = rankings
     const roundScore = calculateTeamScore(teamRanking, communityRanking)
 
-    // Save submission locally (in real version would send to server)
-    const submission = {
-      teamId,
-      round: gameState.currentRound,
-      ranking: teamRanking,
-      score: roundScore,
-      communityRanking: communityRanking,
-      timestamp: Date.now()
-    }
-    
-    localStorage.setItem(`team-${teamId}-round-${gameState.currentRound}`, JSON.stringify(submission))
-    
-    // Update team's total score in game state
-    const updatedGameState = { ...gameState }
-    const teamIndex = updatedGameState.teams.findIndex((t: any) => t.id === teamId)
-    if (teamIndex !== -1) {
-      updatedGameState.teams[teamIndex].score = (updatedGameState.teams[teamIndex].score || 0) + roundScore
-      localStorage.setItem('weekendGameState', JSON.stringify(updatedGameState))
-    }
+    // TODO: Submit to database via API instead of localStorage
     
     setSubmitted(true)
   }
 
-  // Poll for game state changes
-  useEffect(() => {
-    if (!gameState) return
-    
-    const interval = setInterval(() => {
-      const savedState = localStorage.getItem('weekendGameState')
-      if (savedState) {
-        const state = JSON.parse(savedState)
-        if (JSON.stringify(state) !== JSON.stringify(gameState)) {
-          setGameState(state)
-          // Reset submission state if new round
-          if (state.currentRound !== gameState.currentRound) {
-            setSubmitted(false)
-            setRankings([])
-            setFmkAnswers({})
-            // Also clear team selection when rounds reset
-            clearTeamSelection()
-          }
-        }
-      }
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [gameState])
+  // TODO: Replace localStorage polling with Socket.IO real-time updates
 
   // Join Room
   if (!gameState) {
@@ -532,8 +472,7 @@ function PlayGameContent() {
                   <div className="space-y-2">
                     {(() => {
                       // Calculate community ranking for this round
-                      const prefilledAnswers = loadPrefilledAnswers()
-                      const communityRanking = calculateCommunityRanking(gameState.currentRound, prefilledAnswers)
+                      const communityRanking = calculateCommunityRanking(gameState.currentRound, null)
                       
                       return communityRanking.map((person, index) => (
                         <div key={person} className="flex items-center justify-center space-x-2">
@@ -546,24 +485,7 @@ function PlayGameContent() {
                   </div>
                 </div>
 
-                {/* Show team's score for this round if available */}
-                {(() => {
-                  try {
-                    const submission = localStorage.getItem(`team-${teamId}-round-${gameState.currentRound}`)
-                    if (submission) {
-                      const submissionData = JSON.parse(submission)
-                      return (
-                        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                          <div className="text-sm font-medium text-blue-900">Your team's score this round:</div>
-                          <div className="text-2xl font-bold text-blue-800">{submissionData.score || 0} points</div>
-                        </div>
-                      )
-                    }
-                  } catch (error) {
-                    console.error('Error loading team submission:', error)
-                  }
-                  return null
-                })()}
+                {/* TODO: Show team's score from database instead of localStorage */}
                 
                 <div className="text-sm text-gray-600">
                   Next round starting soon...

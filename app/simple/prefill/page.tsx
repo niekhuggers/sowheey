@@ -84,7 +84,7 @@ export default function SimplePrefill() {
     if (isLastQuestion) {
       if (isLastPerson) {
         // All done!
-        localStorage.setItem('friendsWeekendAnswers', JSON.stringify(allAnswers))
+        // TODO: Save answers to database instead of localStorage
         router.push('/simple?step=play')
       } else {
         // Next person
