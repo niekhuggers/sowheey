@@ -3,7 +3,7 @@ builder = "nixpacks"
 buildCommand = "npm install && npx prisma generate"
 
 [deploy]
-startCommand = "node debug-port.js && npm run start:socket"
+startCommand = "node start-socket.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
