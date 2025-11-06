@@ -452,6 +452,8 @@ io.on('connection', (socket) => {
 })
 
 const PORT = Number(process.env.PORT) || Number(process.env.SOCKET_PORT) || 3001
-httpServer.listen(PORT, () => {
-  console.log(`Socket.IO server running on port ${PORT}`)
+const HOST = process.env.HOST || '0.0.0.0'
+
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Socket.IO server running on ${HOST}:${PORT}`)
 })
