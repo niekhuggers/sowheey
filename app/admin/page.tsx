@@ -96,6 +96,7 @@ export default function AdminDashboard() {
   const [currentPrefillQuestion, setCurrentPrefillQuestion] = useState(0)
   const [prefillAnswers, setPrefillAnswers] = useState<any>({})
   const [justSaved, setJustSaved] = useState(false)
+  const [testMode, setTestMode] = useState(false)
 
   // Calculate completion stats
   const getCompletionStats = () => {
@@ -496,9 +497,26 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-bold">🎮 Admin Dashboard</h1>
             <p className="text-gray-600">Ranking the Stars - Weekend Control</p>
           </div>
-          <Button variant="secondary" onClick={logout}>
-            Logout
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Test Mode:</label>
+              <button
+                onClick={() => setTestMode(!testMode)}
+                className={`w-12 h-6 rounded-full transition-colors ${
+                  testMode ? 'bg-orange-500' : 'bg-gray-300'
+                } relative`}
+              >
+                <div
+                  className={`w-5 h-5 bg-white rounded-full transition-transform absolute top-0.5 ${
+                    testMode ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+            <Button variant="secondary" onClick={logout}>
+              Logout
+            </Button>
+          </div>
         </div>
 
         {!gameState.isSetup ? (
@@ -1075,6 +1093,35 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Test Mode Section */}
+            {testMode && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>🧪 Test Mode</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-orange-50 rounded-lg p-4">
+                    <h4 className="font-medium text-orange-900 mb-2">Test Room Creation:</h4>
+                    <p className="text-sm text-orange-800">
+                      Create temporary test rooms for testing game mechanics without affecting the main weekend room.
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={() => setupTestGame()}
+                      disabled={loading}
+                      size="lg"
+                      variant="secondary"
+                      className="border-orange-300 hover:bg-orange-50"
+                    >
+                      {loading ? 'Setting up...' : '🧪 Create Test Room'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>

@@ -1,336 +1,168 @@
-# CLAUDE.md - Ranking the Stars
+# CLAUDE.md
 
-## Project Overview
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Ranking the Stars** is an interactive real-time multiplayer ranking game application built with Next.js 14, TypeScript, Socket.IO, and Prisma. The application facilitates group ranking games where participants rank each other across different categories, featuring both pre-event submissions and live gameplay with real-time scoring.
+## Development Commands
 
-### Key Features
-- **Pre-Event Management**: Roster management, participant invite links, pre-event submissions
-- **Real-Time Gameplay**: Live device pairing, individual/team play, real-time updates via Socket.IO
-- **Community Scoring System**: Collective participant rankings determine "correct" answers
-- **Mobile-First Design**: Optimized for mobile device interactions with drag & drop interfaces
-- **Weekend Mode**: Simplified version for casual friend gatherings
-
-## Tech Stack
-
-### Core Technologies
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Database**: Prisma ORM with SQLite (dev) / PostgreSQL (prod)
-- **Real-Time**: Socket.IO for WebSocket communication
-- **Styling**: Tailwind CSS
-- **UI Components**: Custom components built on Tailwind
-
-### Development Tools
-- **Testing**: Vitest (unit tests) + Playwright (E2E tests)
-- **Code Quality**: ESLint
-- **Database Management**: Prisma Studio
-- **Development**: tsx for TypeScript execution
-
-### Dependencies
-```json
-{
-  "main": {
-    "@prisma/client": "^5.22.0",
-    "next": "14.2.23",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1",
-    "qrcode.react": "^4.1.0",
-    "uuid": "^11.0.4",
-    "zod": "^3.23.8"
-  }
-}
-```
-
-## Architecture Overview
-
-### Application Structure
-```
-/app/                    # Next.js App Router
-├── api/                # Backend API routes
-│   ├── participants/   # Participant management
-│   ├── rooms/         # Room creation/management
-│   ├── pre-submissions/ # Pre-event submissions
-│   ├── teams/         # Team management
-│   ├── scores/        # Scoring system
-│   └── rounds/        # Game round management
-├── host/              # Host dashboard
-├── join/              # Player join flow
-├── pre/               # Pre-event submission interface
-├── play/              # Live gameplay interface
-├── room/              # Room-specific pages
-├── team/              # Team-specific pages
-└── weekend/           # Weekend mode (simplified)
-
-/components/             # React components
-├── ui/                # Base UI components (Button, Card, Input)
-├── host/              # Host-specific components
-├── game/              # Game mechanics components
-└── weekend/           # Weekend mode components
-
-/lib/                   # Utility libraries
-├── prisma.ts          # Database client
-├── socket-client.ts   # Socket.IO client utilities
-├── types.ts           # TypeScript interfaces
-├── utils.ts           # Scoring algorithms & utilities
-└── default-questions.ts # Default game questions
-
-/server/                # Backend services
-└── socket.ts          # Socket.IO server implementation
-
-/prisma/               # Database schema & migrations
-└── schema.prisma      # Database schema definition
-
-/tests/                # Test suites
-├── unit/              # Unit tests (Vitest)
-└── e2e/               # End-to-end tests (Playwright)
-```
-
-### Data Architecture
-
-#### Core Database Models
-- **Room**: Game session container with codes, tokens, and settings
-- **Participant**: Player roster with invite tokens and metadata
-- **Device**: Mobile device connections with pairing information
-- **Team**: Duo teams for collaborative gameplay
-- **Question**: Ranking prompts with categories and ordering
-- **Round**: Individual game rounds with status tracking
-- **Submission**: Real-time ranking submissions from players
-- **PreSubmission**: Pre-event rankings submitted before live gameplay
-- **Score/AggregateScore**: Individual round and cumulative scoring
-- **TeamAggregateScore**: Team-based scoring aggregation
-
-#### Key Relationships
-- Room → Participants (1:many)
-- Room → Teams (1:many) 
-- Team → TeamMembers → Participants (many:many through join table)
-- Room → Questions → Rounds (1:many:many)
-- Round → Submissions (1:many)
-- Participant → PreSubmissions (1:many)
-
-## Game Flow & Mechanics
-
-### 1. Pre-Event Setup Phase
-1. **Host creates room** (`/host`)
-   - Generates unique room code and host token
-   - Initializes default questions from `/lib/default-questions.ts`
-
-2. **Roster Management**
-   - Host adds participants with names and optional avatars
-   - Each participant gets unique UUID invite token
-   - QR codes generated for easy distribution
-
-3. **Pre-Event Submissions** (`/pre`)
-   - Participants access via invite links with tokens
-   - Mobile-optimized drag & drop interface
-   - Rankings stored in `PreSubmission` model
-   - Progress saved, can return later to complete
-
-### 2. Live Event Phase
-1. **Device Pairing**
-   - Participants join via room codes (`/join`)
-   - Individual mode: select from roster
-   - Team mode: enter 6-character pairing code
-
-2. **Real-Time Gameplay**
-   - Host controls game flow from dashboard
-   - Round states: `WAITING` → `OPEN` → `CLOSED` → `REVEALED`
-   - Live submission tracking via Socket.IO
-   - Mobile drag & drop ranking interface
-
-### 3. Scoring System
-- **Community Consensus**: "Correct" answer determined by collective rankings
-- **Point System**: 
-  - +1 point for having someone in community top 3
-  - +2 additional points for exact position match
-- **Calculations**: Server-side in `/lib/utils.ts` scoring functions
-- **Real-time Updates**: Live leaderboards for individuals and teams
-
-## Socket.IO Communication
-
-### Real-Time Events Architecture
-
-#### Client → Server Events
-- `join-room`: Connect device to room with room code
-- `host-action`: Host dashboard actions (add participant, start round, etc.)
-- `submit-ranking`: Submit live round rankings
-- `pair-device`: Pair device to participant or team
-
-#### Server → Client Events
-- `room-state`: Broadcast current room state and participants
-- `round-started/closed/revealed`: Round state changes
-- `participant-added/updated/deleted`: Roster modifications
-- `device-paired`: Successful device pairing confirmation
-- `submission-received`: Ranking submission acknowledgment
-
-#### Connection Management
-- Room-based Socket.IO rooms for isolation
-- Device token mapping for reconnection handling
-- Connection count tracking per room
-- Automatic cleanup on disconnect
-
-## Security Model
-
-### Authentication & Authorization
-- **UUID Tokens**: All sensitive operations use UUID v4 tokens
-  - Host tokens for room management
-  - Invite tokens for participant access
-  - Device tokens for mobile pairing
-- **Server-Side Validation**: All host actions require token validation
-- **Token Expiration**: Team pairing codes expire after 1 minute
-- **No Client Secrets**: Sensitive data never exposed to client-side
-
-### Data Protection
-- **Room Isolation**: Participants can only access their assigned room
-- **Device Validation**: Submissions validated against device-participant pairing
-- **Server Authority**: All scoring calculated server-side to prevent tampering
-
-## Development Workflow
-
-### Environment Setup
 ```bash
-# Prerequisites
-node --version  # 18+
-pnpm --version  # or npm
+# IMPORTANT: Requires TWO terminals for development
+pnpm dev           # Terminal 1: Next.js app on :3000
+pnpm socket        # Terminal 2: Socket.IO server on :3001
 
-# Setup
-pnpm install
-cp .env.example .env
-pnpm db:push
+# Database management
+pnpm db:push       # Push schema changes (development)
+pnpm db:migrate    # Create migration (production)
+pnpm db:studio     # View/edit database with Prisma Studio
 
-# Development
-pnpm dev      # Next.js (Terminal 1)
-pnpm socket   # Socket.IO server (Terminal 2)
+# Testing & Quality
+pnpm test          # Unit tests (Vitest)
+pnpm test:e2e      # E2E tests (Playwright)
+pnpm lint          # ESLint
+pnpm build         # Production build
 ```
 
-### Environment Variables
-```bash
-DATABASE_URL="file:./dev.db"              # SQLite dev, PostgreSQL prod
-NEXT_PUBLIC_SOCKET_URL="http://localhost:3001"  # Socket.IO server
-SOCKET_PORT=3001                          # Socket server port
-NEXT_PUBLIC_APP_URL="http://localhost:3000"     # For QR codes
-```
+## Critical Architecture Understanding
 
-### Scripts
-- `pnpm dev`: Start Next.js development server
-- `pnpm socket`: Start Socket.IO server with watch mode
-- `pnpm build`: Production build
-- `pnpm db:push`: Sync database schema (development)
-- `pnpm db:studio`: Open Prisma Studio
-- `pnpm test`: Run unit tests (Vitest)
-- `pnpm test:e2e`: Run E2E tests (Playwright)
+### Dual Server Requirement
+**This is a dual-server application** - both servers must run simultaneously:
+- **Next.js App** (port 3000): Handles routing, API routes, static pages
+- **Socket.IO Server** (port 3001): Real-time game communication at `/server/socket.ts`
 
-### Testing Strategy
-- **Unit Tests**: Scoring logic in `/tests/unit/scoring.test.ts`
-- **E2E Tests**: Full game flow in `/tests/e2e/game-flow.spec.ts`
-- **Multi-Device Testing**: Playwright mobile device simulation
-- **Real-Time Testing**: Socket.IO event validation
+### Database Model Complexity
+Key relationship to understand for debugging:
+- **PreSubmission model** has complex foreign key relations: `rank1ParticipantId`, `rank2ParticipantId`, `rank3ParticipantId` all reference different participants
+- **Device pairing** supports both individual participants AND teams (nullable foreign keys)
+- **Round states** follow strict progression: `WAITING` → `OPEN` → `CLOSED` → `REVEALED`
 
-## API Design Patterns
+### Game Flow & Special Features
+- **F/M/K Questions**: Special question type with `fixedOptions` array (handled in `/components/game/mobile-ranking.tsx`)
+- **Community Scoring**: Scoring algorithm in `/lib/utils.ts` - +1 for top 3, +2 additional for exact position
+- **Weekend Mode**: Simplified interface with hardcoded participants and different routing
+- **Dutch Language**: Questions in `/lib/default-questions.ts` are Dutch-focused for friend groups
 
-### REST Endpoints
-- **POST /api/rooms**: Create new room with default questions
-- **GET /api/rooms?code=XXX&hostToken=XXX**: Fetch room details
-- **GET/POST /api/participants**: Manage participant roster
-- **GET/POST /api/pre-submissions**: Handle pre-event submissions
-- **POST /api/teams**: Create and manage teams
-- **POST /api/rounds/[id]/calculate**: Calculate round results
-- **GET /api/scores**: Retrieve current scoring state
+## Socket.IO Communication Patterns
 
-### Error Handling
-- Zod schema validation for all inputs
-- Consistent error response format
-- Database constraint handling
-- Socket.IO error event broadcasting
-
-### Response Patterns
+### Critical Events to Understand
 ```typescript
-// Success response
-{ data: T, message?: string }
+// Host actions require token validation
+socket.emit('host-action', { roomId, hostToken, action: 'start-round', questionId })
 
-// Error response  
-{ error: string, details?: any }
+// Submissions can be individual OR team-based
+socket.emit('submit-ranking', { 
+  roomCode, roundId, 
+  participantId?: string,  // Individual mode
+  teamId?: string,         // Team mode
+  rankings: { rank1Id, rank2Id, rank3Id }
+})
 ```
 
-## Deployment Architecture
+### Connection Management
+- All real-time logic in `/server/socket.ts`
+- Rooms isolated by Socket.IO room system
+- Device tokens for reconnection handling
+- Host token validation for all admin actions
 
-### Production Considerations
-1. **Database**: Switch from SQLite to PostgreSQL
-2. **Socket Server**: Deploy separately from Next.js app
-3. **CORS**: Configure for production domains
-4. **Environment**: Set production URLs and secrets
+## Key File Locations
 
-### Recommended Hosting
-- **Next.js App**: Vercel, Netlify, or Node.js compatible hosts
-- **Database**: Supabase, PlanetScale, managed PostgreSQL
-- **Socket.IO Server**: Railway, Render, or WebSocket-capable hosting
+### Game Logic Components
+- `/components/game/mobile-ranking.tsx` - Core drag & drop ranking component (handles F/M/K and regular questions)
+- `/lib/utils.ts` - Scoring calculations and game utilities
+- `/server/socket.ts` - All real-time Socket.IO event handling
+- `/app/admin/page.tsx` - Admin dashboard with pre-fill functionality and test room creation
 
-## Code Style & Patterns
+### Database & Types
+- `/prisma/schema.prisma` - Database schema with complex relationships
+- `/lib/types.ts` - TypeScript interfaces for game state
+- `/lib/default-questions.ts` - Dutch question templates
 
-### TypeScript Conventions
-- Strict type checking enabled
-- Interface definitions in `/lib/types.ts`
-- Zod schemas for runtime validation
-- Proper error handling with typed exceptions
+### API Routes Pattern
+- `/app/api/rooms/route.ts` - Room creation with participants and questions
+- `/app/api/pre-submissions/route.ts` - Pre-event ranking storage/retrieval
 
-### Component Patterns
-- **Server Components**: Default for static content
-- **Client Components**: `'use client'` for interactivity
-- **Custom Hooks**: Socket.IO connection management
-- **Component Composition**: Reusable UI building blocks
+## Environment Setup
+```bash
+# Required environment variables
+DATABASE_URL="file:./dev.db"                        # SQLite for dev
+NEXT_PUBLIC_SOCKET_URL="http://localhost:3001"      # Socket.IO server
+SOCKET_PORT=3001                                     # Socket server port
+NEXT_PUBLIC_APP_URL="http://localhost:3000"         # For QR codes
+```
 
-### Database Patterns
-- **Prisma Models**: Comprehensive relations with cascade deletes
-- **Unique Constraints**: Multi-column uniqueness for data integrity
-- **Timestamps**: Automatic tracking of creation and updates
-- **Soft Deletes**: Preserved through cascade relationships
+## Common Development Patterns
 
-## Troubleshooting Guide
+### Debugging Socket.IO Issues
+```typescript
+// Check Socket.IO events in browser DevTools Network tab
+// Server logs show connection/disconnection events
+// Use pnpm db:studio to inspect database state during testing
+```
 
-### Common Issues
-1. **Socket Connection Fails**
-   - Verify `NEXT_PUBLIC_SOCKET_URL` environment variable
-   - Ensure Socket.IO server running on correct port
-   - Check CORS configuration
+### Mobile Ranking Component Usage
+```typescript
+// The mobile-ranking component handles both regular and F/M/K questions
+const isSpecialQuestion = question.type === 'fmk'
+const availableOptions = isSpecialQuestion 
+  ? question.fixedOptions || []
+  : participants.map(p => p.id)
+```
 
-2. **Database Errors**
-   - Run `pnpm db:push` to sync schema changes
-   - Check DATABASE_URL format and file permissions
-   - Use `pnpm db:studio` for data inspection
+### Team vs Individual Submission Handling
+```typescript
+// Socket events support both modes - check for participantId OR teamId
+socket.on('submit-ranking', async (data: {
+  participantId?: string;  // Individual play
+  teamId?: string;         // Team play
+  // ... rest of data
+}) => {
+  // Handle both cases in server/socket.ts
+})
+```
 
-3. **Mobile Pairing Issues**
-   - Clear localStorage and retry
-   - Verify room code accuracy
-   - Check device token generation
+### Admin Interface Patterns
+- **Weekend Game**: Uses fixed room code "WEEKEND2024" with pre-configured participants
+- **Test Room**: Creates random room code with sample participants for testing
+- **Pre-fill Logic**: Complex F/M/K handling in admin dashboard with proper target/action separation
 
-4. **Scoring Calculation Problems**
-   - Ensure all required participants submitted
-   - Verify round status is 'CLOSED' before revealing
-   - Review scoring logic in `/lib/utils.ts`
+## Recent Architecture Changes & Bug Fixes
 
-### Debug Tools
-- Browser DevTools for Socket.IO event monitoring
-- Prisma Studio for database state inspection
-- Server logs for Socket.IO connection tracking
-- Mobile device testing for touch interactions
+### F/M/K Implementation Standardization
+- **Issue**: Multiple competing F/M/K implementations across components
+- **Solution**: Standardized on `MobileRanking` component with `type: 'fmk'` detection
+- **Key Files**: `/components/game/mobile-ranking.tsx`, `/app/play/page.tsx`
 
-## Contributing Guidelines
+### Database Persistence Issues
+- **Issue**: Admin page was only saving to localStorage, losing data on logout
+- **Solution**: Integrated admin interface with database via API routes
+- **Key Files**: `/app/admin/page.tsx`, `/app/api/pre-submissions/route.ts`
 
-### Development Process
-1. Fork repository and create feature branch
-2. Follow existing code patterns and TypeScript conventions
-3. Add tests for new functionality (unit + E2E where applicable)
-4. Ensure all tests pass (`pnpm test && pnpm test:e2e`)
-5. Update documentation for significant changes
-6. Submit pull request with clear description
+### Socket.IO Team vs Individual Data Mismatch
+- **Issue**: Teams were sending team IDs as participant IDs in socket events
+- **Solution**: Updated socket handler to accept both `participantId` and `teamId`
+- **Key Files**: `/server/socket.ts`
 
-### Code Quality
-- ESLint configuration enforced
-- TypeScript strict mode required
-- Consistent naming conventions
-- Comprehensive error handling
-- Performance considerations for real-time features
+### Admin F/M/K Selection Logic
+- **Issue**: Confusing variable naming and incorrect data structure handling
+- **Solution**: Clear separation between targets (Aylin/Keone/Ceana) and actions (F/M/K)
+- **Key Files**: `/app/admin/page.tsx` (lines 600-650 region)
 
----
+## Troubleshooting Common Issues
 
-This document serves as the comprehensive technical reference for the Ranking the Stars application. For specific implementation details, refer to the source code and inline comments. The architecture prioritizes real-time performance, security, and mobile-first user experience.
+### Socket Connection Problems
+- Check `NEXT_PUBLIC_SOCKET_URL` environment variable matches Socket.IO server port
+- Ensure both `pnpm dev` AND `pnpm socket` are running simultaneously
+- Clear browser localStorage if pairing fails
+
+### Database Issues
+- Run `pnpm db:push` after schema changes
+- Use `pnpm db:studio` to inspect database state
+- Check that DATABASE_URL points to correct file
+
+### F/M/K Question Issues
+- F/M/K questions use `type: 'fmk'` and `fixedOptions` array
+- Admin interface has separate logic for F/M/K target/action selection
+- Mobile ranking component auto-detects question type
+
+### Team vs Individual Submission Confusion
+- Socket events accept EITHER `participantId` OR `teamId` (not both)
+- Device pairing supports both modes with nullable foreign keys
+- Check `/server/socket.ts` for current handling logic
