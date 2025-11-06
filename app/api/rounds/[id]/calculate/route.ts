@@ -19,6 +19,11 @@ export async function POST(
             participant: true,
           },
         },
+        teamSubmissions: {
+          include: {
+            team: true,
+          },
+        },
         question: true,
       },
     })
@@ -80,6 +85,27 @@ export async function POST(
       })
     }
     
+    // Calculate team scores by comparing team submissions against community ranking
+    const teamScores: { teamId: string; points: number }[] = []
+    
+    for (const teamSubmission of round.teamSubmissions) {
+      const points = calculateParticipantScore(
+        {
+          rank1Id: teamSubmission.rank1Id,
+          rank2Id: teamSubmission.rank2Id,
+          rank3Id: teamSubmission.rank3Id,
+        },
+        communityTop3
+      )
+      
+      console.log(`Team ${teamSubmission.team.name} scored ${points} points for their submission`)
+      
+      teamScores.push({
+        teamId: teamSubmission.teamId,
+        points,
+      })
+    }
+    
     // Save scores to database
     await prisma.$transaction(async (tx) => {
       // Delete existing scores for this round
@@ -94,6 +120,22 @@ export async function POST(
             roundId: round.id,
             participantId: score.participantId,
             points: score.points,
+          })),
+        })
+      }
+      
+      // Delete existing team scores for this round
+      await tx.teamScore.deleteMany({
+        where: { roundId: round.id },
+      })
+      
+      // Create new team scores
+      if (teamScores.length > 0) {
+        await tx.teamScore.createMany({
+          data: teamScores.map((teamScore) => ({
+            roundId: round.id,
+            teamId: teamScore.teamId,
+            points: teamScore.points,
           })),
         })
       }

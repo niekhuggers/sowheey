@@ -343,35 +343,29 @@ io.on('connection', (socket) => {
         return
       }
 
-      // For team submissions, create submission for each team member
+      // For team submissions, create one submission for the entire team
       if (data.teamId && device.teamId) {
-        const teamMembers = await prisma.teamMember.findMany({
-          where: { teamId: data.teamId }
-        })
-
-        for (const member of teamMembers) {
-          await prisma.submission.upsert({
-            where: {
-              roundId_participantId: {
-                roundId: data.roundId,
-                participantId: member.participantId
-              }
-            },
-            update: {
-              rank1Id: data.rankings.rank1Id,
-              rank2Id: data.rankings.rank2Id,
-              rank3Id: data.rankings.rank3Id,
-              submittedAt: new Date()
-            },
-            create: {
+        await prisma.teamSubmission.upsert({
+          where: {
+            roundId_teamId: {
               roundId: data.roundId,
-              participantId: member.participantId,
-              rank1Id: data.rankings.rank1Id,
-              rank2Id: data.rankings.rank2Id,
-              rank3Id: data.rankings.rank3Id
+              teamId: data.teamId
             }
-          })
-        }
+          },
+          update: {
+            rank1Id: data.rankings.rank1Id,
+            rank2Id: data.rankings.rank2Id,
+            rank3Id: data.rankings.rank3Id,
+            submittedAt: new Date()
+          },
+          create: {
+            roundId: data.roundId,
+            teamId: data.teamId,
+            rank1Id: data.rankings.rank1Id,
+            rank2Id: data.rankings.rank2Id,
+            rank3Id: data.rankings.rank3Id
+          }
+        })
 
         io.to(data.roomCode).emit('submission-received', {
           teamId: data.teamId,

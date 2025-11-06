@@ -95,20 +95,18 @@ export async function POST(request: NextRequest) {
     
     testResults.push(`📝 Submitting test ranking: ${availableParticipants[0].name}, ${availableParticipants[1].name}, ${availableParticipants[2].name}`)
     
-    // Create submissions for each team member
-    for (const member of teamMembers) {
-      await prisma.submission.create({
-        data: {
-          roundId: round.id,
-          participantId: member.participantId,
-          rank1Id: testRanking.rank1Id,
-          rank2Id: testRanking.rank2Id,
-          rank3Id: testRanking.rank3Id
-        }
-      })
-    }
+    // Create single team submission
+    await prisma.teamSubmission.create({
+      data: {
+        roundId: round.id,
+        teamId: testTeam.id,
+        rank1Id: testRanking.rank1Id,
+        rank2Id: testRanking.rank2Id,
+        rank3Id: testRanking.rank3Id
+      }
+    })
     
-    testResults.push(`✅ Submissions created for ${teamMembers.length} team members`)
+    testResults.push(`✅ Team submission created for ${testTeam.name}`)
     
     // Step 6: Close the round
     round = await prisma.round.update({
@@ -158,28 +156,30 @@ export async function POST(request: NextRequest) {
     
     testResults.push(`🎊 Results revealed!`)
     
-    // Step 9: Check final scores
-    const scores = await prisma.score.findMany({
+    // Step 9: Check team scores (direct team scoring, not individual)
+    const teamScores = await prisma.teamScore.findMany({
+      where: { roundId: round.id },
+      include: { team: true },
+      orderBy: { points: 'desc' }
+    })
+    
+    testResults.push(`🏆 Team scores for this round:`)
+    teamScores.forEach(teamScore => {
+      testResults.push(`   ${teamScore.team.name}: ${teamScore.points} points`)
+    })
+    
+    // Step 10: Check individual scores (if any still exist)
+    const individualScores = await prisma.score.findMany({
       where: { roundId: round.id },
       include: { participant: true }
     })
     
-    testResults.push(`📊 Final scores:`)
-    scores.forEach(score => {
-      testResults.push(`   ${score.participant.name}: ${score.points} points`)
-    })
-    
-    // Step 10: Check team aggregate scores
-    const teamScores = await prisma.teamAggregateScore.findMany({
-      where: { roundId: round.id },
-      include: { team: true },
-      orderBy: { totalScore: 'desc' }
-    })
-    
-    testResults.push(`🏆 Team scores:`)
-    teamScores.forEach(teamScore => {
-      testResults.push(`   ${teamScore.team.name}: ${teamScore.totalScore} points (Rank ${teamScore.rank})`)
-    })
+    if (individualScores.length > 0) {
+      testResults.push(`📊 Individual scores:`)
+      individualScores.forEach(score => {
+        testResults.push(`   ${score.participant.name}: ${score.points} points`)
+      })
+    }
     
     // Cleanup: Remove test device
     await prisma.device.delete({ where: { id: device.id } })
@@ -192,7 +192,8 @@ export async function POST(request: NextRequest) {
       testResults,
       roundId: round.id,
       teamUsed: testTeam.name,
-      scoresGenerated: scores.length
+      teamScoresGenerated: teamScores.length,
+      individualScoresGenerated: individualScores.length
     })
     
   } catch (error) {

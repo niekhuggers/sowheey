@@ -99,6 +99,8 @@ model Team {
   createdAt         DateTime         @default(now())
 
   members           TeamMember[]
+  submissions       TeamSubmission[]
+  scores            TeamScore[]
   aggregateScores   TeamAggregateScore[]
   devices           Device[]
   pairingCodes      TeamPairingCode[]
@@ -157,7 +159,9 @@ model Round {
   completedAt       DateTime?
 
   submissions       Submission[]
+  teamSubmissions   TeamSubmission[]
   scores            Score[]
+  teamScores        TeamScore[]
   aggregateScores   AggregateScore[]
   teamAggregateScores TeamAggregateScore[]
 
@@ -176,6 +180,32 @@ model Submission {
   submittedAt       DateTime     @default(now())
 
   @@unique([roundId, participantId])
+}
+
+model TeamSubmission {
+  id                String       @id @default(cuid())
+  roundId           String
+  round             Round        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  teamId            String
+  team              Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  rank1Id           String
+  rank2Id           String
+  rank3Id           String
+  submittedAt       DateTime     @default(now())
+
+  @@unique([roundId, teamId])
+}
+
+model TeamScore {
+  id                String       @id @default(cuid())
+  roundId           String
+  round             Round        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  teamId            String
+  team              Team         @relation(fields: [teamId], references: [id])
+  points            Int
+  createdAt         DateTime     @default(now())
+
+  @@unique([roundId, teamId])
 }
 
 model Score {
