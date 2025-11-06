@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "socket": "tsx watch server/socket.ts",
+    "socket:prod": "tsx server/socket.ts",
     "test": "vitest",
     "test:e2e": "playwright test"
   },
