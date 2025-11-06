@@ -495,6 +495,43 @@ export default function AdminDashboard() {
     }
   }
 
+  const debugMigration = async () => {
+    const friendsWeekendAnswers = localStorage.getItem('friendsWeekendAnswers')
+    const weekendGameState = localStorage.getItem('weekendGameState')
+    
+    let teams: any[] = []
+    if (weekendGameState) {
+      const gameData = JSON.parse(weekendGameState)
+      teams = gameData.teams || []
+    }
+
+    const localData = {
+      friendsWeekendAnswers: friendsWeekendAnswers ? JSON.parse(friendsWeekendAnswers) : null,
+      teams: teams
+    }
+
+    console.log('=== DEBUG MIGRATION DATA ===')
+    console.log('Raw friendsWeekendAnswers:', friendsWeekendAnswers)
+    console.log('Raw weekendGameState:', weekendGameState)
+    console.log('Parsed teams:', teams)
+    console.log('Final localData:', localData)
+
+    try {
+      const response = await fetch('/api/debug-migration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ localData })
+      })
+
+      const result = await response.json()
+      console.log('Debug result:', result)
+      alert(`Debug completed! Check console for details.\n\nSummary:\n- Local answers: ${localData.friendsWeekendAnswers ? Object.keys(localData.friendsWeekendAnswers).length : 0} people\n- Local teams: ${teams.length}\n- Database participants: ${result.debug?.participantCount || 0}\n- Database questions: ${result.debug?.questionCount || 0}`)
+    } catch (error) {
+      console.error('Debug error:', error)
+      alert('Debug failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    }
+  }
+
   const resetGame = () => {
     if (confirm('⚠️ FULL RESET: This will delete ALL LOCAL data including community rankings! Are you sure?')) {
       // Reset local state but keep WEEKEND2024 room in database
@@ -1126,6 +1163,14 @@ export default function AdminDashboard() {
                     🔄 Reset Rounds Only
                   </Button>
                   
+                  <Button
+                    variant="secondary"
+                    onClick={debugMigration}
+                    className="border-yellow-300 hover:bg-yellow-50 text-yellow-700"
+                  >
+                    🔍 Debug Migration Data
+                  </Button>
+
                   <Button
                     variant="secondary"
                     onClick={migrateLocalData}
