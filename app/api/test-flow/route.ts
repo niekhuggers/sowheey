@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
     testResults.push(`🎯 Round ${nextRoundNumber} started with question: "${testQuestion.text}"`)
     
     // Step 5: Simulate team submission
-    const teamMembers = testTeam.members
     const availableParticipants = room.participants.filter(p => !['Niek', 'Joep', 'Merijn'].includes(p.name))
     
     if (availableParticipants.length < 3) {
