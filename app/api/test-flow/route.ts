@@ -60,16 +60,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No questions found in room' })
     }
     
+    // Find the next available round number
+    const existingRounds = await prisma.round.findMany({
+      where: { roomId: room.id },
+      orderBy: { roundNumber: 'desc' }
+    })
+    
+    const nextRoundNumber = (existingRounds[0]?.roundNumber || 0) + 1
+    
     let round = await prisma.round.create({
       data: {
         roomId: room.id,
         questionId: testQuestion.id,
-        roundNumber: 1,
+        roundNumber: nextRoundNumber,
         status: 'ACTIVE'
       }
     })
     
-    testResults.push(`🎯 Round 1 started with question: "${testQuestion.text}"`)
+    testResults.push(`🎯 Round ${nextRoundNumber} started with question: "${testQuestion.text}"`)
     
     // Step 5: Simulate team submission
     const teamMembers = testTeam.members
