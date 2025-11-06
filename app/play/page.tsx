@@ -575,7 +575,7 @@ function PlayGameContent() {
                         })()}
                       </div>
                       <div className="text-sm text-blue-600">
-                        +1 for each person in community top 3, +2 bonus for exact position
+                        +1 for each person in community top 3, +2 bonus for exact position match
                       </div>
                     </div>
                   </div>
