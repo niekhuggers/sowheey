@@ -565,16 +565,31 @@ export default function AdminDashboard() {
     console.log('✅ Local state updated to active')
   }
 
-  const manualNextRound = () => {
+  const manualNextRound = async () => {
+    const nextRound = gameState.currentRound + 1
     const nextState = {
       ...gameState,
-      roundStatus: gameState.currentRound >= QUESTIONS.length - 1 ? 'completed' as const : 'waiting' as const,
-      currentRound: gameState.currentRound + 1
+      roundStatus: nextRound >= QUESTIONS.length ? 'completed' as const : 'waiting' as const,
+      currentRound: nextRound
     }
     setGameState(nextState)
     
+    // Update database with new current round
+    try {
+      await fetch('/api/game-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: gameState.roomCode,
+          currentRound: nextRound
+        })
+      })
+    } catch (error) {
+      console.error('Failed to update round in database:', error)
+    }
+    
     // Send Socket.IO action for next round or completion
-    if (gameState.currentRound >= QUESTIONS.length - 1) {
+    if (nextRound >= QUESTIONS.length) {
       sendHostAction(gameState.roomCode, '', 'complete-game', {})
     } else {
       sendHostAction(gameState.roomCode, '', 'next-round', {})
@@ -805,6 +820,39 @@ export default function AdminDashboard() {
                     <div className="text-2xl font-bold text-purple-800">{gameState.teams.length}</div>
                     <div className="text-sm text-purple-600">Teams</div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Score Leaderboard */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>🏆 Score Leaderboard</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {gameState.teams
+                    .sort((a: any, b: any) => (b.totalScore || 0) - (a.totalScore || 0))
+                    .map((team: any, index: number) => (
+                      <div key={team.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">
+                            {index === 0 && '🥇'}
+                            {index === 1 && '🥈'}
+                            {index === 2 && '🥉'}
+                            {index > 2 && `${index + 1}.`}
+                          </span>
+                          <div>
+                            <div className="font-medium">{team.name}</div>
+                            <div className="text-sm text-gray-600">{team.members.join(' + ')}</div>
+                          </div>
+                        </div>
+                        <div className="text-2xl font-bold">{team.totalScore || 0}</div>
+                      </div>
+                    ))}
+                  {gameState.teams.length === 0 && (
+                    <p className="text-gray-500 text-center py-4">No teams created yet</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1233,8 +1281,8 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex items-center space-x-4">
                           <div className="text-right">
-                            <div className="text-sm text-gray-600">Score</div>
-                            <div className="font-medium">{team.score || 0}</div>
+                            <div className="text-sm text-gray-600">Total Score</div>
+                            <div className="font-medium text-lg">{team.totalScore || 0}</div>
                           </div>
                           <Button
                             variant="danger"

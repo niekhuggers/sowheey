@@ -191,22 +191,24 @@ export async function POST(
         })
       }
       
-      // Calculate team scores
+      // Calculate team aggregate scores from all TeamScore records
       const teams = await tx.team.findMany({
         where: { roomId: round.roomId },
         include: {
-          members: {
-            include: {
-              participant: true,
-            },
-          },
+          scores: {
+            where: {
+              round: {
+                status: { in: ['REVEALED', 'CLOSED'] }
+              }
+            }
+          }
         },
       })
       
       const teamAggregateScores = teams.map((team) => {
-        const teamTotalScore = team.members.reduce((total, member) => {
-          const memberAggregate = aggregates.get(member.participantId)
-          return total + (memberAggregate?.totalScore || 0)
+        // Sum all team scores across all rounds
+        const teamTotalScore = team.scores.reduce((total, score) => {
+          return total + score.points
         }, 0)
         
         return {
