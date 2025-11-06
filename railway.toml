@@ -1,5 +1,2 @@
-[build]
-builder = "dockerfile"
-
 [deploy]
-startCommand = "node railway-server.js"
+startCommand = "npx tsx server/socket.ts"
