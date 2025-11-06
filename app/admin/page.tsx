@@ -94,6 +94,7 @@ export default function AdminDashboard() {
   const [currentPrefillPerson, setCurrentPrefillPerson] = useState(0)
   const [currentPrefillQuestion, setCurrentPrefillQuestion] = useState(0)
   const [prefillAnswers, setPrefillAnswers] = useState<any>({})
+  const [dataLoaded, setDataLoaded] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
   const [testMode, setTestMode] = useState(false)
 
@@ -134,7 +135,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     // Auto-load game state without localStorage authentication check
-    loadGameState()
+    if (!dataLoaded) {
+      loadGameState()
+    }
   }, [])
 
   const authenticate = () => {
@@ -187,6 +190,7 @@ export default function AdminDashboard() {
         })
         
         setPrefillAnswers(dbAnswers)
+        setDataLoaded(true)
         console.log('Final transformed answers:', dbAnswers)
         console.log('Sample person answers:', dbAnswers['Maurits'])
         console.log('Current prefillAnswers state after setPrefillAnswers:', dbAnswers)
@@ -206,6 +210,7 @@ export default function AdminDashboard() {
           })
         })
         setPrefillAnswers(initialAnswers)
+        setDataLoaded(true)
       }
     } catch (error) {
       console.error('Error loading prefilled answers from database:', error)
@@ -218,6 +223,7 @@ export default function AdminDashboard() {
         })
       })
       setPrefillAnswers(initialAnswers)
+      setDataLoaded(true)
     }
   }
 
