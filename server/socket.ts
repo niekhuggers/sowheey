@@ -404,7 +404,7 @@ io.on('connection', (socket) => {
   })
 })
 
-const PORT = process.env.PORT || process.env.SOCKET_PORT || 3001
+const PORT = Number(process.env.PORT) || Number(process.env.SOCKET_PORT) || 3001
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Socket.IO server running on port ${PORT}`)
 })
