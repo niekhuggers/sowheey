@@ -124,6 +124,10 @@ export async function GET(request: NextRequest) {
                 participant: true,
               },
             },
+            aggregateScores: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
           },
         },
         questions: {
