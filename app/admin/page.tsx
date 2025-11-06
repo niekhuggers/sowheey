@@ -518,6 +518,10 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>🎯 Round Control</CardTitle>
+                <p className="text-gray-600">
+                  <strong>Scoring:</strong> Teams get +1 point for each person they guess correctly in community top 3, 
+                  +2 bonus points for exact position matches (max 9 points per round)
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -569,7 +573,8 @@ export default function AdminDashboard() {
             {showPrefill && (
               <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle>📝 Pre-fill Answers</CardTitle>
+                  <CardTitle>📊 Community Rankings Setup</CardTitle>
+                <p className="text-gray-600">Enter how each person ranks others. Teams will try to guess these community averages during the game!</p>
                   
                   {/* Player Navigation */}
                   <div className="space-y-4">
@@ -936,10 +941,11 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Pre-fill Progress */}
+            {/* Community Rankings Progress */}
             <Card>
               <CardHeader>
-                <CardTitle>📊 Pre-fill Progress</CardTitle>
+                <CardTitle>📊 Community Rankings Progress</CardTitle>
+                <p className="text-gray-600">Each person needs to rank all others for each question</p>
               </CardHeader>
               <CardContent>
                 {(() => {
@@ -980,19 +986,21 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Admin Actions */}
+            {/* Community Rankings */}
             <Card>
               <CardHeader>
-                <CardTitle>⚙️ Admin Actions</CardTitle>
+                <CardTitle>📊 Community Rankings</CardTitle>
+                <p className="text-gray-600">This is the core of the game - teams will try to guess these community rankings</p>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <Button
                     onClick={startPrefill}
-                    variant="secondary"
+                    variant={showPrefill ? "secondary" : "primary"}
                     disabled={showPrefill}
+                    size="lg"
                   >
-                    📝 Pre-fill All Answers
+                    {showPrefill ? "📝 Currently Editing Rankings" : "📝 Edit Community Rankings"}
                   </Button>
                   
                   <Button
@@ -1005,7 +1013,6 @@ export default function AdminDashboard() {
                   <Button
                     variant="danger"
                     onClick={resetGame}
-                    className="col-span-2"
                   >
                     🔄 Reset Game
                   </Button>
