@@ -131,10 +131,11 @@ function PlayGameContent() {
     // Listen for round events
     socket.on('round-started', (round: any) => {
       console.log('Round started:', round)
-      setGameState((prev: any) => prev ? { 
-        ...prev, 
+      setGameState((prev: any) => prev ? {
+        ...prev,
         roundStatus: 'active',
-        currentRound: round.roundNumber - 1 
+        currentRound: round.roundNumber - 1,
+        currentRoundData: round
       } : prev)
       setSubmitted(false)
       setRankings([])
@@ -199,6 +200,8 @@ function PlayGameContent() {
           }
         })()
         
+        const currentRoundData = gameStateData.rounds[gameStateData.room.currentRound]
+        
         const gameState = {
           isSetup: true,
           currentRound: gameStateData.room.currentRound,
@@ -208,7 +211,8 @@ function PlayGameContent() {
           answersPrefilled: gameStateData.room.gameState !== 'SETUP',
           roomId: gameStateData.room.id,
           participants: gameStateData.participants,
-          questions: gameStateData.questions
+          questions: gameStateData.questions,
+          currentRoundData: currentRoundData
         }
         console.log('Setting game state with teams:', gameState.teams)
         setGameState(gameState)
@@ -339,17 +343,51 @@ function PlayGameContent() {
     const currentQuestion = QUESTIONS[gameState.currentRound]
     const isFMKQuestion = currentQuestion.type === 'fmk'
     
-    if (rankings.length !== 3) return
+    if (rankings.length !== 3) {
+      alert('Please select 3 people before submitting')
+      return
+    }
 
-    // Get community ranking for scoring
-    const communityRanking = calculateCommunityRanking(gameState.currentRound, null)
-    
-    // Calculate team's score for this round
-    const teamRanking = rankings
-    const roundScore = calculateTeamScore(teamRanking, communityRanking)
+    if (!gameState.currentRoundData?.id) {
+      alert('No active round found')
+      return
+    }
 
-    // TODO: Submit to database via API instead of localStorage
+    // Get participant IDs for the rankings
+    const participantMap = new Map(
+      gameState.participants?.map((p: any) => [p.name, p.id]) || []
+    )
+
+    const rank1Id = participantMap.get(rankings[0])
+    const rank2Id = participantMap.get(rankings[1])
+    const rank3Id = participantMap.get(rankings[2])
+
+    if (!rank1Id || !rank2Id || !rank3Id) {
+      alert('Could not find participant IDs for selected rankings')
+      return
+    }
+
+    // Submit via Socket.IO
+    const socket = getSocket()
     
+    if (!socket || !socket.connected) {
+      alert('Not connected to server. Please refresh and try again.')
+      return
+    }
+
+    socket.emit('submit-ranking', {
+      roomCode: gameState.roomCode,
+      roundId: gameState.currentRoundData.id,
+      teamId: teamId,
+      deviceToken: deviceToken,
+      rankings: {
+        rank1Id,
+        rank2Id,
+        rank3Id
+      }
+    })
+
+    console.log('✅ Submission sent to server for team', teamId)
     setSubmitted(true)
   }
 

@@ -191,7 +191,9 @@ export async function POST(
         })
       }
       
-      // Calculate team aggregate scores from all TeamScore records
+      // Calculate team aggregate scores
+      // If teams have TeamScore records (team-based submissions), use those
+      // Otherwise, sum individual member scores (individual-based submissions)
       const teams = await tx.team.findMany({
         where: { roomId: round.roomId },
         include: {
@@ -201,15 +203,43 @@ export async function POST(
                 status: { in: ['REVEALED', 'CLOSED'] }
               }
             }
+          },
+          members: {
+            include: {
+              participant: {
+                include: {
+                  scores: {
+                    where: {
+                      round: {
+                        roomId: round.roomId,
+                        status: { in: ['REVEALED', 'CLOSED'] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
       })
       
       const teamAggregateScores = teams.map((team) => {
-        // Sum all team scores across all rounds
-        const teamTotalScore = team.scores.reduce((total, score) => {
+        // Try to use TeamScore records first (team-based submissions)
+        let teamTotalScore = team.scores.reduce((total, score) => {
           return total + score.points
         }, 0)
+        
+        // If no TeamScore records exist, fall back to summing individual member scores
+        if (teamTotalScore === 0 && team.members.length > 0) {
+          teamTotalScore = team.members.reduce((total, member) => {
+            const memberTotal = member.participant.scores.reduce((sum, score) => {
+              return sum + score.points
+            }, 0)
+            return total + memberTotal
+          }, 0)
+          
+          console.log(`Team ${team.name}: Calculated ${teamTotalScore} from ${team.members.length} member scores`)
+        }
         
         return {
           teamId: team.id,
