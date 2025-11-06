@@ -67,22 +67,27 @@ export async function POST(
     // Calculate individual scores by comparing live submissions against community ranking
     const scores: { participantId: string; points: number }[] = []
     
-    for (const submission of round.submissions) {
-      const points = calculateParticipantScore(
-        {
-          rank1Id: submission.rank1Id,
-          rank2Id: submission.rank2Id,
-          rank3Id: submission.rank3Id,
-        },
-        communityTop3
-      )
-      
-      console.log(`Participant ${submission.participant.name} scored ${points} points for their live submission`)
-      
-      scores.push({
-        participantId: submission.participantId,
-        points,
-      })
+    // Only process individual submissions if no team submissions exist
+    if (round.teamSubmissions.length === 0) {
+      for (const submission of round.submissions) {
+        const points = calculateParticipantScore(
+          {
+            rank1Id: submission.rank1Id,
+            rank2Id: submission.rank2Id,
+            rank3Id: submission.rank3Id,
+          },
+          communityTop3
+        )
+        
+        console.log(`Participant ${submission.participant.name} scored ${points} points for their live submission`)
+        
+        scores.push({
+          participantId: submission.participantId,
+          points,
+        })
+      }
+    } else {
+      console.log(`Skipping individual scoring - found ${round.teamSubmissions.length} team submissions`)
     }
     
     // Calculate team scores by comparing team submissions against community ranking

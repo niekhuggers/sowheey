@@ -345,6 +345,20 @@ io.on('connection', (socket) => {
 
       // For team submissions, create one submission for the entire team
       if (data.teamId && device.teamId) {
+        // Remove any existing individual submissions for team members in this round
+        const teamMembers = await prisma.teamMember.findMany({
+          where: { teamId: data.teamId }
+        })
+        
+        for (const member of teamMembers) {
+          await prisma.submission.deleteMany({
+            where: {
+              roundId: data.roundId,
+              participantId: member.participantId
+            }
+          })
+        }
+        
         await prisma.teamSubmission.upsert({
           where: {
             roundId_teamId: {
