@@ -118,6 +118,8 @@ export default function AdminDashboard() {
   const [justSaved, setJustSaved] = useState(false)
   const [testMode, setTestMode] = useState(false)
   const [teamStatus, setTeamStatus] = useState<any>(null)
+  const [allCommunityRankings, setAllCommunityRankings] = useState<any>(null)
+  const [showRankings, setShowRankings] = useState(false)
 
   // Calculate completion stats
   const getCompletionStats = () => {
@@ -267,6 +269,18 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error loading team status:', error)
+    }
+  }
+
+  const loadAllCommunityRankings = async () => {
+    try {
+      const response = await fetch('/api/all-community-rankings')
+      if (response.ok) {
+        const data = await response.json()
+        setAllCommunityRankings(data)
+      }
+    } catch (error) {
+      console.error('Error loading community rankings:', error)
     }
   }
 
@@ -1027,6 +1041,66 @@ export default function AdminDashboard() {
                   )}
                 </div>
               </CardContent>
+            </Card>
+
+            {/* Community Top 3 Reference */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>📖 Community Top 3 Answers</span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      if (!allCommunityRankings) {
+                        loadAllCommunityRankings()
+                      }
+                      setShowRankings(!showRankings)
+                    }}
+                  >
+                    {showRankings ? 'Hide' : 'Show All'}
+                  </Button>
+                </CardTitle>
+                <p className="text-sm text-gray-600">Quick reference for all community rankings</p>
+              </CardHeader>
+              {showRankings && (
+                <CardContent>
+                  {!allCommunityRankings ? (
+                    <div className="text-center py-4 text-gray-500">Loading...</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {allCommunityRankings.rankings?.map((ranking: any) => (
+                        <div key={ranking.questionNumber} className="p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-gray-700">
+                                Q{ranking.questionNumber}: {ranking.question}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {ranking.submissionCount} submissions
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1">
+                              <span>🥇</span>
+                              <span className="font-medium">{ranking.communityTop3.rank1}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span>🥈</span>
+                              <span className="font-medium">{ranking.communityTop3.rank2}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span>🥉</span>
+                              <span className="font-medium">{ranking.communityTop3.rank3}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              )}
             </Card>
 
             {/* Real-Time Team Status */}
