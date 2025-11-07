@@ -50,7 +50,12 @@ export async function POST(
       },
     })
 
-    console.log(`Calculating community ranking from ${preSubmissions.length} pre-submissions for question ${round.questionId}`)
+    console.log(`\n====== CALCULATE ROUND ${round.id} (Round #${round.roundNumber}) ======`)
+    console.log(`Question: ${round.question?.text}`)
+    console.log(`Status: ${round.status}`)
+    console.log(`Team submissions: ${round.teamSubmissions.length}`)
+    console.log(`Individual submissions: ${round.submissions.length}`)
+    console.log(`Pre-submissions for community ranking: ${preSubmissions.length}`)
 
     // Calculate community ranking from pre-submissions (not live submissions!)
     const preSubmissionRankings = preSubmissions.map(sub => ({
@@ -246,23 +251,33 @@ export async function POST(
         },
       })
       
+      console.log(`📊 Calculating team aggregates for ${teams.length} teams`)
+      
       const teamAggregateScores = teams.map((team) => {
+        console.log(`\n🔵 Processing team: ${team.name}`)
+        console.log(`  - Team has ${team.scores.length} TeamScore records`)
+        console.log(`  - Team has ${team.members?.length || 0} members`)
+        
         // Try to use TeamScore records first (team-based submissions)
         let teamTotalScore = team.scores.reduce((total, score) => {
+          console.log(`    TeamScore: ${score.points} points from round`)
           return total + score.points
         }, 0)
         
+        console.log(`  - Total from TeamScore records: ${teamTotalScore}`)
+        
         // If no TeamScore records exist, fall back to summing individual member scores
-        if (teamTotalScore === 0 && team.members.length > 0) {
-          teamTotalScore = team.members.reduce((total, member) => {
-            const memberTotal = member.participant.scores.reduce((sum, score) => {
-              return sum + score.points
-            }, 0)
-            return total + memberTotal
-          }, 0)
+        if (teamTotalScore === 0 && team.members && team.members.length > 0) {
+          team.members.forEach(member => {
+            const memberTotal = member.participant.scores.reduce((sum, score) => sum + score.points, 0)
+            console.log(`    Member ${member.participant.name}: ${memberTotal} points from individual scores`)
+            teamTotalScore += memberTotal
+          })
           
-          console.log(`Team ${team.name}: Calculated ${teamTotalScore} from ${team.members.length} member scores`)
+          console.log(`  - Total from member scores: ${teamTotalScore}`)
         }
+        
+        console.log(`  ✅ Final total for ${team.name}: ${teamTotalScore}`)
         
         return {
           teamId: team.id,
