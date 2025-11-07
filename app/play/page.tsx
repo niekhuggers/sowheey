@@ -81,11 +81,9 @@ const calculateTeamScore = (teamRanking: string[], communityRanking: string[]): 
       // Award 1 point for being in the community top 3
       score += 1
       
-      // Award extra points for exact position matches
+      // Award +2 bonus for exact position match (ANY position)
       if (communityIndex === teamIndex) {
-        if (teamIndex === 0) score += 3 // 1st place match
-        else if (teamIndex === 1) score += 2 // 2nd place match  
-        else if (teamIndex === 2) score += 1 // 3rd place match
+        score += 2 // Matches server logic: total 3 points for exact match
       }
     }
   })
