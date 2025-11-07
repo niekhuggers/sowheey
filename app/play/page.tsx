@@ -137,9 +137,11 @@ function PlayGameContent() {
         currentRound: round.roundNumber - 1,
         currentRoundData: round
       } : prev)
+      // Don't clear rankings immediately - let them see previous round's answer
+      // Will clear when they start selecting for new round
       setSubmitted(false)
-      setRankings([])
-      setFmkAnswers({})
+      // setRankings([]) - KEEP previous rankings visible!
+      // setFmkAnswers({}) - KEEP previous answers visible!
     })
     
     socket.on('round-closed', (round: any) => {
@@ -358,6 +360,13 @@ function PlayGameContent() {
   }
 
   const handlePersonSelect = (person: string) => {
+    // If starting a new round (submitted is false but rankings exist), clear old rankings
+    if (!submitted && rankings.length > 0 && gameState.roundStatus === 'active') {
+      console.log('Starting new round selection - clearing old rankings')
+      setRankings([person])
+      return
+    }
+    
     if (rankings.includes(person)) {
       setRankings(rankings.filter(p => p !== person))
     } else if (rankings.length < 3) {
