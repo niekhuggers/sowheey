@@ -543,7 +543,8 @@ function PlayGameContent() {
 
   const currentQuestion = QUESTIONS[gameState.currentRound]
   const isFMKQuestion = currentQuestion.type === 'fmk'
-  const availablePeople = ALL_PEOPLE.filter(p => !team?.members.includes(p))
+  // Allow ranking EVERYONE (including yourself!)
+  const availablePeople = isFMKQuestion ? currentQuestion.fixedOptions || [] : ALL_PEOPLE
   
   // Convert people to participant format for MobileRanking component
   const participantsForRanking = availablePeople.map(person => ({
