@@ -137,9 +137,9 @@ function PlayGameContent() {
         currentRound: round.roundNumber - 1,
         currentRoundData: round
       } : prev)
-      // Don't clear rankings immediately - let them see previous round's answer
+      // Don't clear anything - let them see previous round's results
       // Will clear when they start selecting for new round
-      setSubmitted(false)
+      // setSubmitted(false) - KEEP submitted state!
       // setRankings([]) - KEEP previous rankings visible!
       // setFmkAnswers({}) - KEEP previous answers visible!
     })
@@ -360,10 +360,11 @@ function PlayGameContent() {
   }
 
   const handlePersonSelect = (person: string) => {
-    // If starting a new round (submitted is false but rankings exist), clear old rankings
-    if (!submitted && rankings.length > 0 && gameState.roundStatus === 'active') {
-      console.log('Starting new round selection - clearing old rankings')
+    // If starting a new round (submitted but in active round), clear old data
+    if (submitted && gameState.roundStatus === 'active') {
+      console.log('Starting new round selection - clearing old data')
       setRankings([person])
+      setSubmitted(false)
       return
     }
     
@@ -654,8 +655,8 @@ function PlayGameContent() {
                 
                 {gameState.roundStatus === 'revealing' && <div className="text-4xl text-center">🎉</div>}
                 
-                {/* Community Top 3 - Show during and after reveal */}
-                {gameState.roundStatus === 'revealing' && (
+                {/* Community Top 3 - Always visible after reveal! */}
+                {submitted && (
                   <div className="p-4 bg-green-50 rounded-lg border-2 border-green-300">
                     <h3 className="font-bold mb-3 text-green-900 text-center text-lg">✅ Goede Antwoord (Community Top 3):</h3>
                     <div className="space-y-2">
