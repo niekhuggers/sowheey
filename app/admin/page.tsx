@@ -552,6 +552,8 @@ export default function AdminDashboard() {
       questionCount: gameState.questions?.length
     })
     
+    let saveSuccessful = false
+    
     if (gameState.roomCode && gameState.participants && gameState.questions) {
       console.log('🔵 Entering database save block')
       try {
@@ -579,8 +581,10 @@ export default function AdminDashboard() {
             
             if (response.ok) {
               console.log('✅ Successfully saved FMK answers to database')
+              saveSuccessful = true
             } else {
               console.error('❌ Failed to save FMK answers to database:', response.status, await response.text())
+              alert(`Failed to save FMK answer for ${personName}. Please try again.`)
             }
           } else {
             // Convert ranking names to participant IDs for regular questions
@@ -606,30 +610,41 @@ export default function AdminDashboard() {
               
               if (response.ok) {
                 console.log('✅ Successfully saved to database')
+                saveSuccessful = true
               } else {
-                console.error('❌ Failed to save to database:', response.status, await response.text())
+                const errorText = await response.text()
+                console.error('❌ Failed to save to database:', response.status, errorText)
+                alert(`Failed to save answer for ${personName} Q${currentPrefillQuestion + 1}. Error: ${errorText}`)
+                return // Don't advance if save failed
               }
             } else {
               console.error('❌ Could not find all participants for ranking:', rankings)
+              alert(`Could not find participants for: ${rankings.join(', ')}`)
+              return // Don't advance if validation failed
             }
           }
         }
       } catch (error) {
         console.error('Error saving to database:', error)
+        alert(`Network error saving for ${personName}. Please check connection and try again.`)
+        return // Don't advance if error occurred
       }
     }
 
-    // Move to next question/person automatically
-    if (currentPrefillQuestion < QUESTIONS.length - 1) {
-      setCurrentPrefillQuestion(currentPrefillQuestion + 1)
-    } else if (currentPrefillPerson < ALL_PEOPLE.length - 1) {
-      setCurrentPrefillPerson(currentPrefillPerson + 1)
-      setCurrentPrefillQuestion(0)
-    } else {
-      // Loop back to first person/question instead of closing
-      setCurrentPrefillPerson(0)
-      setCurrentPrefillQuestion(0)
-      alert('Reached the end! You can continue editing or close manually.')
+    // Only advance if save was successful
+    if (saveSuccessful) {
+      // Move to next question/person automatically
+      if (currentPrefillQuestion < QUESTIONS.length - 1) {
+        setCurrentPrefillQuestion(currentPrefillQuestion + 1)
+      } else if (currentPrefillPerson < ALL_PEOPLE.length - 1) {
+        setCurrentPrefillPerson(currentPrefillPerson + 1)
+        setCurrentPrefillQuestion(0)
+      } else {
+        // Loop back to first person/question instead of closing
+        setCurrentPrefillPerson(0)
+        setCurrentPrefillQuestion(0)
+        alert('✅ All answers saved! You can continue editing or close manually.')
+      }
     }
   }
 
