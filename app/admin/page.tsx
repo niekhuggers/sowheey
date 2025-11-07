@@ -191,22 +191,45 @@ export default function AdminDashboard() {
     })
     
     socket.on('round-revealed', (data) => {
-      console.log('Round revealed, reloading to show updated scores:', data)
-      // Reload game state to show updated team scores in leaderboard
+      console.log('🎉 Round revealed, reloading scores:', data)
+      
+      // Immediate status update
+      setGameState((prev: any) => prev ? {
+        ...prev,
+        roundStatus: 'revealing' as const
+      } : prev)
+      
+      // First reload after 2 seconds
       setTimeout(async () => {
+        console.log('⏳ Admin: First reload to get scores...')
         const response = await fetch(`/api/game-state?roomCode=WEEKEND2024`)
         if (response.ok) {
           const freshData = await response.json()
-          // Update only the teams and rounds data, keep current round number
           setGameState((prev: any) => prev ? {
             ...prev,
             teams: freshData.teams,
             rounds: freshData.rounds,
             roundStatus: 'revealing' as const
           } : prev)
-          console.log('✅ Scores refreshed, round status set to revealing')
+          console.log('✅ Admin: Scores loaded (attempt 1)')
         }
-      }, 1500) // Wait for scores to be saved to database
+      }, 2000)
+      
+      // Second reload after 4 seconds (ensure scores are visible)
+      setTimeout(async () => {
+        console.log('⏳ Admin: Second reload to ensure scores...')
+        const response = await fetch(`/api/game-state?roomCode=WEEKEND2024`)
+        if (response.ok) {
+          const freshData = await response.json()
+          setGameState((prev: any) => prev ? {
+            ...prev,
+            teams: freshData.teams,
+            rounds: freshData.rounds,
+            roundStatus: 'revealing' as const
+          } : prev)
+          console.log('✅ Admin: Leaderboard should be updated now!', freshData.teams)
+        }
+      }, 4000)
     })
     
     // Listen for submission events to update status
