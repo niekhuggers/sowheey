@@ -56,15 +56,31 @@ export function calculateParticipantScore(
   const submissionRanks = [submission.rank1Id, submission.rank2Id, submission.rank3Id]
   const communityRanks = [communityTop3.rank1Id, communityTop3.rank2Id, communityTop3.rank3Id]
   
+  console.log('🔢 SCORING CALCULATION:')
+  console.log('Submission ranks:', submissionRanks)
+  console.log('Community ranks:', communityRanks)
+  
   submissionRanks.forEach((participantId, index) => {
-    if (communityRanks.includes(participantId)) {
+    const inTop3 = communityRanks.includes(participantId)
+    const exactMatch = communityRanks[index] === participantId
+    
+    console.log(`Position ${index + 1}: ${participantId}`)
+    console.log(`  - In top 3? ${inTop3}`)
+    console.log(`  - Exact match? ${exactMatch}`)
+    
+    if (inTop3) {
       score += 1
+      console.log(`  - Added 1 pt (in top 3) → running total: ${score}`)
       
-      if (communityRanks[index] === participantId) {
+      if (exactMatch) {
         score += 2
+        console.log(`  - Added 2 pt (exact match) → running total: ${score}`)
       }
+    } else {
+      console.log(`  - Not in top 3, no points`)
     }
   })
   
+  console.log(`✅ FINAL SCORE: ${score} points`)
   return score
 }
