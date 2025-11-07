@@ -106,6 +106,7 @@ export default function AdminDashboard() {
   const [dataLoaded, setDataLoaded] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
   const [testMode, setTestMode] = useState(false)
+  const [teamStatus, setTeamStatus] = useState<any>(null)
 
   // Calculate completion stats
   const getCompletionStats = () => {
@@ -191,6 +192,11 @@ export default function AdminDashboard() {
       }, 1000) // Wait for scores to be saved to database
     })
     
+    // Listen for submission events to update status
+    socket.on('submission-received', () => {
+      loadTeamStatus()
+    })
+    
     return () => {
       // Clean up socket connection on unmount
       socket.off('connect')
@@ -198,9 +204,31 @@ export default function AdminDashboard() {
       socket.off('disconnect')
       socket.off('round-started')
       socket.off('round-revealed')
+      socket.off('submission-received')
       socket.disconnect()
     }
   }, [])
+  
+  // Poll team status during active rounds
+  useEffect(() => {
+    if (gameState.roundStatus === 'active') {
+      loadTeamStatus()
+      const interval = setInterval(loadTeamStatus, 3000) // Update every 3 seconds
+      return () => clearInterval(interval)
+    }
+  }, [gameState.roundStatus, gameState.roomCode])
+  
+  const loadTeamStatus = async () => {
+    try {
+      const response = await fetch(`/api/admin/team-status?roomCode=${gameState.roomCode || 'WEEKEND2024'}`)
+      if (response.ok) {
+        const data = await response.json()
+        setTeamStatus(data)
+      }
+    } catch (error) {
+      console.error('Error loading team status:', error)
+    }
+  }
 
   const authenticate = () => {
     // Simple password check - in production use proper auth
@@ -950,6 +978,48 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Real-Time Team Status */}
+            {gameState.roundStatus === 'active' && teamStatus && (
+              <Card className="mb-6 border-2 border-blue-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>📊 Live Status - Round {gameState.currentRound + 1}</span>
+                    <span className="text-sm font-normal text-green-600">● Live</span>
+                  </CardTitle>
+                  <div className="text-lg font-medium text-blue-700 mt-2">
+                    {teamStatus.stats.teamsSubmitted}/{teamStatus.stats.totalTeams} Teams Submitted
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {teamStatus.teams.map((team: any) => (
+                      <div key={team.id} className="flex items-center justify-between p-3 rounded-lg border" style={{
+                        backgroundColor: team.hasSubmitted ? '#f0fdf4' : team.deviceConnected ? '#fef9f3' : '#f9fafb',
+                        borderColor: team.hasSubmitted ? '#86efac' : team.deviceConnected ? '#fcd34d' : '#e5e7eb'
+                      }}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">
+                            {team.hasSubmitted && '✅'}
+                            {!team.hasSubmitted && team.deviceConnected && '⏳'}
+                            {!team.hasSubmitted && !team.deviceConnected && '⚪'}
+                          </span>
+                          <div>
+                            <div className="font-medium">{team.name}</div>
+                            <div className="text-xs text-gray-600">{team.members.join(' + ')}</div>
+                          </div>
+                        </div>
+                        <div className="text-sm">
+                          {team.hasSubmitted && <span className="text-green-700 font-medium">Submitted</span>}
+                          {!team.hasSubmitted && team.deviceConnected && <span className="text-orange-600">Connected</span>}
+                          {!team.hasSubmitted && !team.deviceConnected && <span className="text-gray-400">Not connected</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Round Control */}
             <Card>
