@@ -179,12 +179,12 @@ export default function AdminDashboard() {
     })
     
     socket.on('round-revealed', (data) => {
-      console.log('Round revealed, refreshing scores:', data)
-      // Reload game state to get updated scores
-      setTimeout(() => {
-        console.log('Reloading admin state after round revealed...')
-        loadGameState()
-      }, 1000) // Faster reload to show scores sooner
+      console.log('Round revealed:', data)
+      // Update status to revealing but DON'T reload - wait for manual "Next Round"
+      setGameState((prev: any) => prev ? {
+        ...prev,
+        roundStatus: 'revealing' as const
+      } : prev)
     })
     
     return () => {
@@ -614,13 +614,16 @@ export default function AdminDashboard() {
   }
 
   const manualNextRound = async () => {
+    console.log('📋 Next Round button clicked - reloading scores first...')
+    
+    // FIRST: Reload game state to get updated scores from this round
+    await loadGameState()
+    
+    // Wait a moment for state to update
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
     const nextRound = gameState.currentRound + 1
-    const nextState = {
-      ...gameState,
-      roundStatus: nextRound >= QUESTIONS.length ? 'completed' as const : 'waiting' as const,
-      currentRound: nextRound
-    }
-    setGameState(nextState)
+    console.log(`Moving from round ${gameState.currentRound} to ${nextRound}`)
     
     // Update database with new current round
     try {
@@ -632,9 +635,18 @@ export default function AdminDashboard() {
           currentRound: nextRound
         })
       })
+      console.log('✅ Database updated to round', nextRound)
     } catch (error) {
       console.error('Failed to update round in database:', error)
     }
+    
+    // Update local state
+    const nextState = {
+      ...gameState,
+      roundStatus: nextRound >= QUESTIONS.length ? 'completed' as const : 'waiting' as const,
+      currentRound: nextRound
+    }
+    setGameState(nextState)
     
     // Send Socket.IO action for next round or completion
     if (nextRound >= QUESTIONS.length) {
@@ -642,6 +654,8 @@ export default function AdminDashboard() {
     } else {
       sendHostAction(gameState.roomCode, '', 'next-round', {})
     }
+    
+    console.log('✅ Advanced to next round')
   }
 
   const revealResults = () => {
@@ -655,10 +669,7 @@ export default function AdminDashboard() {
     }
     setGameState(newState)
     
-    // Auto advance after 20 seconds to give time to see scores
-    setTimeout(() => {
-      manualNextRound()
-    }, 20000) // Increased from 10 to 20 seconds
+    // NO auto-advance - wait for manual "Next Round" button click
   }
 
   const resetRoundsOnly = async () => {
@@ -992,7 +1003,7 @@ export default function AdminDashboard() {
                         </div>
                         
                         <div className="space-y-3">
-                          <p className="text-sm text-gray-600">Check team scores above, then continue:</p>
+                          <p className="text-sm text-gray-600">Check team scores above, then click to continue:</p>
                           <Button 
                             onClick={manualNextRound} 
                             size="lg" 
@@ -1000,7 +1011,6 @@ export default function AdminDashboard() {
                           >
                             {gameState.currentRound >= QUESTIONS.length - 1 ? '🏆 Finish Game' : '➡️ Next Round'}
                           </Button>
-                          <p className="text-xs text-gray-500">Auto-advance in 20 seconds</p>
                         </div>
                       </div>
                     )}
