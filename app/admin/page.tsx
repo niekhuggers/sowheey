@@ -119,7 +119,7 @@ export default function AdminDashboard() {
   const [testMode, setTestMode] = useState(false)
   const [teamStatus, setTeamStatus] = useState<any>(null)
   const [allCommunityRankings, setAllCommunityRankings] = useState<any>(null)
-  const [showRankings, setShowRankings] = useState(false)
+  const [showRankings, setShowRankings] = useState(true) // Show by default!
   const [manualScores, setManualScores] = useState<{[roundNumber: number]: {[teamName: string]: number}}>({})
 
   // Calculate completion stats
@@ -161,6 +161,7 @@ export default function AdminDashboard() {
     // Auto-load game state without localStorage authentication check
     if (!dataLoaded) {
       loadGameState()
+      loadAllCommunityRankings() // Load rankings immediately!
     }
     
     // Connect to Socket.IO
