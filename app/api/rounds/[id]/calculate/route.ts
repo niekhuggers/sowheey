@@ -279,14 +279,21 @@ export async function POST(
       
       // Create new team aggregate scores
       if (teamAggregateScores.length > 0) {
+        console.log(`💾 Creating ${teamAggregateScores.length} TeamAggregateScore records...`)
+        const aggregateData = teamAggregateScores.map((teamScore, index) => ({
+          roundId: round.id,
+          teamId: teamScore.teamId,
+          totalScore: teamScore.totalScore,
+          rank: index + 1,
+        }))
+        console.log('Aggregate data to save:', aggregateData)
+        
         await tx.teamAggregateScore.createMany({
-          data: teamAggregateScores.map((teamScore, index) => ({
-            roundId: round.id,
-            teamId: teamScore.teamId,
-            totalScore: teamScore.totalScore,
-            rank: index + 1,
-          })),
+          data: aggregateData
         })
+        console.log(`✅ TeamAggregateScore records created!`)
+      } else {
+        console.log(`⚠️ No team aggregate scores to save`)
       }
 
       // Mark round as REVEALED
@@ -297,9 +304,20 @@ export async function POST(
           completedAt: new Date()
         }
       })
+      console.log(`✅ Round status updated to REVEALED`)
     })
     
-    console.log(`✅ Round ${round.id} marked as REVEALED and scores calculated`)
+    console.log(`✅ Round ${round.id} fully processed - REVEALED and scores calculated`)
+    
+    // Verify what was created
+    const verification = await prisma.teamAggregateScore.findMany({
+      where: { roundId: round.id },
+      include: { team: true }
+    })
+    console.log(`📊 Verification: Created ${verification.length} aggregate score records:`)
+    verification.forEach(agg => {
+      console.log(`   - Team ${agg.team.name}: ${agg.totalScore} pts (rank ${agg.rank})`)
+    })
     
     return NextResponse.json(communityTop3)
   } catch (error) {
