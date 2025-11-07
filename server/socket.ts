@@ -306,11 +306,44 @@ io.on('connection', (socket) => {
         case 'reset-rounds':
           console.log('🔄 Resetting rounds for room:', data.roomCode)
           
+          // Reset all rounds to WAITING status (don't delete - preserve round/question associations)
+          await prisma.round.updateMany({
+            where: { roomId: room.id },
+            data: { 
+              status: 'WAITING',
+              communityRank1Id: null,
+              communityRank2Id: null,
+              communityRank3Id: null,
+              completedAt: null
+            }
+          })
+          
+          // Clear all scores and submissions
+          await prisma.teamScore.deleteMany({
+            where: { 
+              round: { roomId: room.id }
+            }
+          })
+          
+          await prisma.teamAggregateScore.deleteMany({
+            where: {
+              round: { roomId: room.id }
+            }
+          })
+          
+          await prisma.teamSubmission.deleteMany({
+            where: {
+              round: { roomId: room.id }
+            }
+          })
+          
           // Update room to round 0
           await prisma.room.update({
             where: { id: room.id },
             data: { currentRound: 0 }
           })
+          
+          console.log('✅ All rounds reset to WAITING, scores cleared')
           
           // Broadcast to all players to reload their game state
           io.to(data.roomCode).emit('rounds-reset', {
