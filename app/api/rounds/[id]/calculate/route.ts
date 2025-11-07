@@ -256,26 +256,13 @@ export async function POST(
       const teamAggregateScores = teams.map((team) => {
         console.log(`\n🔵 Processing team: ${team.name}`)
         console.log(`  - Team has ${team.scores.length} TeamScore records`)
-        console.log(`  - Team has ${team.members?.length || 0} members`)
         
-        // Try to use TeamScore records first (team-based submissions)
-        let teamTotalScore = team.scores.reduce((total, score) => {
-          console.log(`    TeamScore: ${score.points} points from round`)
+        // ONLY use TeamScore records (team-based submissions)
+        // NO fallback to individual scores to prevent wrong team getting points
+        const teamTotalScore = team.scores.reduce((total, score) => {
+          console.log(`    TeamScore: ${score.points} points from round ${score.roundId}`)
           return total + score.points
         }, 0)
-        
-        console.log(`  - Total from TeamScore records: ${teamTotalScore}`)
-        
-        // If no TeamScore records exist, fall back to summing individual member scores
-        if (teamTotalScore === 0 && team.members && team.members.length > 0) {
-          team.members.forEach(member => {
-            const memberTotal = member.participant.scores.reduce((sum, score) => sum + score.points, 0)
-            console.log(`    Member ${member.participant.name}: ${memberTotal} points from individual scores`)
-            teamTotalScore += memberTotal
-          })
-          
-          console.log(`  - Total from member scores: ${teamTotalScore}`)
-        }
         
         console.log(`  ✅ Final total for ${team.name}: ${teamTotalScore}`)
         

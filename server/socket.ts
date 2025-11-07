@@ -358,6 +358,16 @@ io.on('connection', (socket) => {
 
       // For team submissions, create one submission for the entire team
       if (data.teamId && device.teamId) {
+        // Get team name for logging
+        const team = await prisma.team.findUnique({
+          where: { id: data.teamId }
+        })
+        
+        console.log(`📝 Team submission from device ${data.deviceToken.substring(0, 8)}...`)
+        console.log(`   Team: ${team?.name} (ID: ${data.teamId})`)
+        console.log(`   Device paired to: ${device.teamId}`)
+        console.log(`   Match: ${device.teamId === data.teamId ? '✅' : '❌'}`)
+        
         // Remove any existing individual submissions for team members in this round
         const teamMembers = await prisma.teamMember.findMany({
           where: { teamId: data.teamId }
@@ -393,6 +403,8 @@ io.on('connection', (socket) => {
             rank3Id: data.rankings.rank3Id
           }
         })
+
+        console.log(`✅ Submission saved for team ${team?.name}`)
 
         io.to(data.roomCode).emit('submission-received', {
           teamId: data.teamId,
