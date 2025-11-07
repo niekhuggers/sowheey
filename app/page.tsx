@@ -6,10 +6,11 @@ export default function Home() {
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm">
         <div className="text-center space-y-8">
           <div>
-            <h1 className="text-5xl font-bold mb-4">🌟 Ranking the Stars</h1>
+            <h1 className="text-6xl font-bold mb-4">🎉 Sowheey</h1>
+            <h2 className="text-3xl font-bold mb-2 text-blue-600">Vriendenweekend</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Welcome to het vrienden weekend! 
-              Join the ranking game en laat zien wie de beste is! 🏆
+              Welkom bij het ranking spel! 
+              Laat zien hoe goed jij je vrienden kent! 🏆
             </p>
           </div>
 
@@ -19,20 +20,20 @@ export default function Home() {
           >
             <div className="text-center">
               <h2 className="mb-3 text-3xl font-bold text-blue-800">
-                🎮 Join Game{' '}
+                🎮 Speel Mee{' '}
                 <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
                   →
                 </span>
               </h2>
               <p className="text-blue-700 text-lg max-w-md">
-                Voer de room code in om mee te doen!
-                <br />Ready to play? 🚀
+                Kies je team en begin met spelen!
+                <br />Veel plezier! 🚀
               </p>
             </div>
           </Link>
 
           <div className="text-sm text-gray-500 mt-8">
-            Room code: WEEKEND2024 • Mobile-friendly • Live scoring
+            Room: WEEKEND2024 • Mobielvriendelijk • Live updates
           </div>
         </div>
       </div>

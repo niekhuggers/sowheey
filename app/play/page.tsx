@@ -616,71 +616,75 @@ function PlayGameContent() {
           </Card>
         )}
 
-        {gameState.roundStatus === 'revealing' && (
+        {(gameState.roundStatus === 'revealing' || (gameState.roundStatus === 'waiting' && rankings.length > 0 && submitted)) && (
           <Card>
             <CardHeader>
               <CardTitle className="text-center">
-                Round {gameState.currentRound + 1} Results
+                Round {gameState.currentRound + 1} {gameState.roundStatus === 'revealing' ? 'Results' : 'Answer'}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center space-y-4">
                 <div className="text-lg font-medium">{currentQuestion.text}</div>
                 
-                <div className="text-4xl">🎉</div>
+                {gameState.roundStatus === 'revealing' && <div className="text-4xl">🎉</div>}
                 
-                <div>
-                  <h3 className="font-medium mb-2">Community Top 3:</h3>
-                  <div className="space-y-2">
-                    {(() => {
-                      // Get REAL community ranking from the revealed round data
-                      const revealedRound = gameState.rounds?.[gameState.currentRound]
-                      
-                      if (revealedRound?.communityRank1Id && gameState.participants) {
-                        const rank1 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank1Id)
-                        const rank2 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank2Id)
-                        const rank3 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank3Id)
+                {/* Community Top 3 - Show during and after reveal */}
+                {gameState.roundStatus === 'revealing' && (
+                  <div className="mb-4 p-4 bg-green-50 rounded-lg border-2 border-green-300">
+                    <h3 className="font-medium mb-3 text-green-900">✅ Community Top 3:</h3>
+                    <div className="space-y-2">
+                      {(() => {
+                        // Get REAL community ranking from the revealed round data
+                        const revealedRound = gameState.rounds?.[gameState.currentRound]
                         
-                        return [rank1?.name, rank2?.name, rank3?.name].filter(Boolean).map((person, index) => (
-                          <div key={person} className="flex items-center justify-center space-x-2">
-                            <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
-                            <span className="font-medium">{person}</span>
-                            {HOSTS.includes(person || '') && <span>👑</span>}
-                          </div>
-                        ))
-                      }
-                      
-                      // Fallback - calculating...
-                      return <div className="text-gray-500">Calculating community ranking...</div>
-                    })()}
+                        if (revealedRound?.communityRank1Id && gameState.participants) {
+                          const rank1 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank1Id)
+                          const rank2 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank2Id)
+                          const rank3 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank3Id)
+                          
+                          return [rank1?.name, rank2?.name, rank3?.name].filter(Boolean).map((person, index) => (
+                            <div key={person} className="flex items-center justify-center space-x-2 text-lg">
+                              <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
+                              <span className="font-bold">{person}</span>
+                              {HOSTS.includes(person || '') && <span>👑</span>}
+                            </div>
+                          ))
+                        }
+                        
+                        // Fallback - calculating...
+                        return <div className="text-gray-500">Calculating community ranking...</div>
+                      })()}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Your Team's Score - Get from database */}
-                {teamId && (
-                  <div className="border-t pt-4">
-                    <h3 className="font-medium mb-2">Your Team's Answer:</h3>
-                    <div className="space-y-1 mb-4">
+                {/* Your Team's Answer - Always visible after submission */}
+                {teamId && rankings.length > 0 && (
+                  <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
+                    <h3 className="font-medium mb-3 text-blue-900">Your Team's Answer:</h3>
+                    <div className="space-y-2">
                       {rankings.slice(0, 3).map((person, index) => (
-                        <div key={person} className="flex items-center justify-center space-x-2">
-                          <span className="text-lg">{index + 1}.</span>
+                        <div key={person} className="flex items-center justify-center space-x-2 text-lg">
+                          <span className="font-bold">{index + 1}.</span>
                           <span className="font-medium">{person}</span>
                           {HOSTS.includes(person) && <span>👑</span>}
                         </div>
                       ))}
                     </div>
-                    
-                    {/* Scoring disabled - manual tracking by host */}
-                    <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <div className="text-sm text-yellow-800 text-center">
-                        ⭐ Host will announce scores ⭐
-                      </div>
+                  </div>
+                )}
+                
+                {gameState.roundStatus === 'revealing' && (
+                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="text-sm text-yellow-800 text-center font-medium">
+                      ⭐ Host is calculating your score ⭐
                     </div>
                   </div>
                 )}
                 
-                <div className="text-sm text-gray-600">
-                  Waiting for next round...
+                <div className="text-sm text-gray-600 mt-4">
+                  {gameState.roundStatus === 'revealing' ? 'Waiting for next round...' : 'Keep this visible for scoring!'}
                 </div>
               </div>
             </CardContent>
