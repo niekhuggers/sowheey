@@ -644,7 +644,7 @@ function PlayGameContent() {
                 {teamId && (
                   <div className="border-t pt-4">
                     <h3 className="font-medium mb-2">Your Team's Answer:</h3>
-                    <div className="space-y-1">
+                    <div className="space-y-1 mb-4">
                       {rankings.slice(0, 3).map((person, index) => (
                         <div key={person} className="flex items-center justify-center space-x-2">
                           <span className="text-lg">{index + 1}.</span>
@@ -654,21 +654,44 @@ function PlayGameContent() {
                       ))}
                     </div>
                     
-                    {/* Show actual score from database */}
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-700">
-                        {(() => {
-                          const currentTeam = gameState.teams?.find((t: any) => t.id === teamId)
-                          return currentTeam?.totalScore !== undefined ? (
-                            `${currentTeam.totalScore} Points!`
-                          ) : (
-                            'Calculating...'
-                          )
-                        })()}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Total accumulated score
-                      </div>
+                    {/* Show THIS round's score and total */}
+                    <div className="space-y-3">
+                      {(() => {
+                        const currentRoundData = gameState.rounds?.[gameState.currentRound]
+                        const thisRoundScore = currentRoundData?.teamScores?.find((ts: any) => ts.teamId === teamId)
+                        const currentTeam = gameState.teams?.find((t: any) => t.id === teamId)
+                        
+                        return (
+                          <>
+                            {/* This Round's Score */}
+                            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-2 border-green-300">
+                              <div className="text-sm text-green-700 mb-1">This Round</div>
+                              <div className="text-4xl font-bold text-green-700">
+                                {thisRoundScore?.points !== undefined ? (
+                                  `+${thisRoundScore.points}`
+                                ) : (
+                                  '...'
+                                )} <span className="text-2xl">pts</span>
+                              </div>
+                            </div>
+                            
+                            {/* Total Accumulated Score */}
+                            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300">
+                              <div className="text-sm text-blue-700 mb-1">Total Score</div>
+                              <div className="text-4xl font-bold text-blue-700">
+                                {currentTeam?.totalScore !== undefined ? (
+                                  currentTeam.totalScore
+                                ) : (
+                                  '...'
+                                )} <span className="text-2xl">pts</span>
+                              </div>
+                              <div className="text-xs text-blue-600 mt-1">
+                                Accumulated across all rounds
+                              </div>
+                            </div>
+                          </>
+                        )
+                      })()}
                     </div>
                   </div>
                 )}
