@@ -146,13 +146,27 @@ function PlayGameContent() {
     })
     
     socket.on('round-revealed', (data: any) => {
-      console.log('Round revealed, reloading to show updated scores:', data)
-      // Reload game state to show updated team scores
+      console.log('🎉 Round revealed event received:', data)
+      
+      // Update status to revealing immediately
+      setGameState((prev: any) => prev ? { 
+        ...prev, 
+        roundStatus: 'revealing' 
+      } : prev)
+      
+      // Reload game state multiple times to ensure scores are loaded
+      // First reload after 2 seconds
       setTimeout(async () => {
-        console.log('⏳ Reloading game state to get scores...')
+        console.log('⏳ First reload - getting scores...')
         await loadGameState('WEEKEND2024')
-        console.log('✅ Game state reloaded after reveal')
-      }, 2000) // Wait for scores to be saved to database
+      }, 2000)
+      
+      // Second reload after 4 seconds (backup in case first was too early)
+      setTimeout(async () => {
+        console.log('⏳ Second reload - ensuring scores are loaded...')
+        await loadGameState('WEEKEND2024')
+        console.log('✅ Scores should be visible now!')
+      }, 4000)
     })
     
     socket.on('game-completed', () => {
