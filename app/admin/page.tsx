@@ -194,13 +194,19 @@ export default function AdminDashboard() {
       console.log('Round revealed, reloading to show updated scores:', data)
       // Reload game state to show updated team scores in leaderboard
       setTimeout(async () => {
-        await loadGameState()
-        // Keep status as 'revealing' so "Next Round" button stays visible
-        setGameState((prev: any) => prev ? {
-          ...prev,
-          roundStatus: 'revealing' as const
-        } : prev)
-      }, 1000) // Wait for scores to be saved to database
+        const response = await fetch(`/api/game-state?roomCode=WEEKEND2024`)
+        if (response.ok) {
+          const freshData = await response.json()
+          // Update only the teams and rounds data, keep current round number
+          setGameState((prev: any) => prev ? {
+            ...prev,
+            teams: freshData.teams,
+            rounds: freshData.rounds,
+            roundStatus: 'revealing' as const
+          } : prev)
+          console.log('✅ Scores refreshed, round status set to revealing')
+        }
+      }, 1500) // Wait for scores to be saved to database
     })
     
     // Listen for submission events to update status
@@ -672,18 +678,21 @@ export default function AdminDashboard() {
   }
 
   const manualNextRound = async () => {
-    console.log('📋 Next Round button clicked - reloading scores first...')
+    console.log('📋 Next Round button clicked')
+    console.log('Current round in state:', gameState.currentRound)
     
-    // FIRST: Reload game state to get updated scores from this round
-    await loadGameState()
-    
-    // Wait a moment for state to update
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
+    // Calculate next round from CURRENT state
     const nextRound = gameState.currentRound + 1
-    console.log(`Moving from round ${gameState.currentRound} to ${nextRound}`)
+    console.log(`➡️ Moving to round ${nextRound}`)
     
-    // Update database with new current round
+    // First update local state immediately
+    setGameState((prev: any) => ({
+      ...prev,
+      currentRound: nextRound,
+      roundStatus: nextRound >= QUESTIONS.length ? 'completed' as const : 'waiting' as const
+    }))
+    
+    // Then update database
     try {
       await fetch('/api/game-state', {
         method: 'POST',
@@ -698,14 +707,6 @@ export default function AdminDashboard() {
       console.error('Failed to update round in database:', error)
     }
     
-    // Update local state
-    const nextState = {
-      ...gameState,
-      roundStatus: nextRound >= QUESTIONS.length ? 'completed' as const : 'waiting' as const,
-      currentRound: nextRound
-    }
-    setGameState(nextState)
-    
     // Send Socket.IO action for next round or completion
     if (nextRound >= QUESTIONS.length) {
       sendHostAction(gameState.roomCode, '', 'complete-game', {})
@@ -713,7 +714,7 @@ export default function AdminDashboard() {
       sendHostAction(gameState.roomCode, '', 'next-round', {})
     }
     
-    console.log('✅ Advanced to next round')
+    console.log('✅ Advanced to next round', nextRound)
   }
 
   const revealResults = () => {

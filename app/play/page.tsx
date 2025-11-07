@@ -148,9 +148,11 @@ function PlayGameContent() {
     socket.on('round-revealed', (data: any) => {
       console.log('Round revealed, reloading to show updated scores:', data)
       // Reload game state to show updated team scores
-      setTimeout(() => {
-        loadGameState('WEEKEND2024')
-      }, 1500) // Wait for scores to be saved to database
+      setTimeout(async () => {
+        console.log('⏳ Reloading game state to get scores...')
+        await loadGameState('WEEKEND2024')
+        console.log('✅ Game state reloaded after reveal')
+      }, 2000) // Wait for scores to be saved to database
     })
     
     socket.on('game-completed', () => {
@@ -657,9 +659,19 @@ function PlayGameContent() {
                     {/* Show THIS round's score and total */}
                     <div className="space-y-3">
                       {(() => {
+                        console.log('🎯 Player reveal - checking scores for team:', teamId)
+                        console.log('Current round:', gameState.currentRound)
+                        console.log('Rounds available:', gameState.rounds?.length)
+                        
                         const currentRoundData = gameState.rounds?.[gameState.currentRound]
+                        console.log('Current round data:', currentRoundData)
+                        console.log('TeamScores in round:', currentRoundData?.teamScores)
+                        
                         const thisRoundScore = currentRoundData?.teamScores?.find((ts: any) => ts.teamId === teamId)
+                        console.log('This round score for team:', thisRoundScore)
+                        
                         const currentTeam = gameState.teams?.find((t: any) => t.id === teamId)
+                        console.log('Current team data:', currentTeam)
                         
                         return (
                           <>
