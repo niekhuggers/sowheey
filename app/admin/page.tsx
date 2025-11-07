@@ -663,17 +663,25 @@ export default function AdminDashboard() {
   }
 
   const revealResults = () => {
+    // Prevent double-click
+    if (gameState.roundStatus === 'revealing') {
+      console.log('Already revealing, ignoring click')
+      return
+    }
+    
+    console.log('🎉 Reveal Results clicked')
+    
     // Send Socket.IO host action to reveal results
     sendHostAction(gameState.roomCode, '', 'reveal-results', {})
     
-    // Also update local state for immediate UI feedback
+    // Immediately update local state to prevent double-click
     const newState = {
       ...gameState,
       roundStatus: 'revealing' as const
     }
     setGameState(newState)
     
-    // NO auto-advance - wait for manual "Next Round" button click
+    console.log('✅ Reveal command sent, waiting for scores...')
   }
 
   const resetRoundsOnly = async () => {
