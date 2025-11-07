@@ -224,7 +224,8 @@ function PlayGameContent() {
           roomId: gameStateData.room.id,
           participants: gameStateData.participants,
           questions: gameStateData.questions,
-          currentRoundData: currentRoundData
+          currentRoundData: currentRoundData,
+          rounds: gameStateData.rounds
         }
         console.log('Setting game state with teams:', gameState.teams)
         setGameState(gameState)
