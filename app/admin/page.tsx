@@ -1224,25 +1224,30 @@ export default function AdminDashboard() {
                           <div className="space-y-3">
                             {(() => {
                               const revealedRound = gameState.rounds?.[gameState.currentRound]
-                              if (!revealedRound?.teamSubmissions) return <div className="text-gray-500">Loading submissions...</div>
+                              const currentRoundNumber = gameState.currentRound + 1
                               
-                              return revealedRound.teamSubmissions.map((submission: any) => {
-                                const team = gameState.teams?.find((t: any) => t.id === submission.teamId)
+                              // Show ALL teams, not just ones that submitted
+                              return gameState.teams.map((team: any) => {
+                                const submission = revealedRound?.teamSubmissions?.find((s: any) => s.teamId === team.id)
+                                const teamScore = manualScores[currentRoundNumber]?.[team.name] || 0
                                 
-                                // Get participant names
-                                const rank1 = gameState.participants?.find((p: any) => p.id === submission.rank1Id)
-                                const rank2 = gameState.participants?.find((p: any) => p.id === submission.rank2Id)
-                                const rank3 = gameState.participants?.find((p: any) => p.id === submission.rank3Id)
-                                
-                                const currentRoundNumber = gameState.currentRound + 1
-                                const teamScore = manualScores[currentRoundNumber]?.[team?.name || ''] || 0
+                                // Get participant names if submitted
+                                let rank1Name = '', rank2Name = '', rank3Name = ''
+                                if (submission) {
+                                  const rank1 = gameState.participants?.find((p: any) => p.id === submission.rank1Id)
+                                  const rank2 = gameState.participants?.find((p: any) => p.id === submission.rank2Id)
+                                  const rank3 = gameState.participants?.find((p: any) => p.id === submission.rank3Id)
+                                  rank1Name = rank1?.name || ''
+                                  rank2Name = rank2?.name || ''
+                                  rank3Name = rank3?.name || ''
+                                }
                                 
                                 return (
-                                  <div key={submission.teamId} className="p-4 bg-white rounded-lg border-2 border-gray-300">
+                                  <div key={team.id} className="p-4 bg-white rounded-lg border-2 border-gray-300">
                                     <div className="flex justify-between items-start mb-3">
                                       <div>
-                                        <div className="text-lg font-bold text-gray-900">{team?.name}</div>
-                                        <div className="text-xs text-gray-500">{team?.members.join(' + ')}</div>
+                                        <div className="text-lg font-bold text-gray-900">{team.name}</div>
+                                        <div className="text-xs text-gray-500">{team.members.join(' + ')}</div>
                                       </div>
                                       <div className="flex items-center gap-2">
                                         <Input
@@ -1256,7 +1261,7 @@ export default function AdminDashboard() {
                                               ...manualScores,
                                               [currentRoundNumber]: {
                                                 ...manualScores[currentRoundNumber],
-                                                [team?.name || '']: score
+                                                [team.name]: score
                                               }
                                             })
                                           }}
@@ -1266,19 +1271,18 @@ export default function AdminDashboard() {
                                         <span className="text-sm text-gray-600">pts</span>
                                       </div>
                                     </div>
-                                    <div className="text-base font-medium bg-blue-50 p-3 rounded">
-                                      Answer: <span className="text-blue-700">{rank1?.name}, {rank2?.name}, {rank3?.name}</span>
-                                    </div>
+                                    {submission ? (
+                                      <div className="text-base font-medium bg-blue-50 p-3 rounded">
+                                        Answer: <span className="text-blue-700">{rank1Name}, {rank2Name}, {rank3Name}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="text-sm text-gray-400 bg-gray-50 p-3 rounded italic">
+                                        Geen antwoord ingestuurd
+                                      </div>
+                                    )}
                                   </div>
                                 )
                               })
-                            })()}
-                            {(() => {
-                              const revealedRound = gameState.rounds?.[gameState.currentRound]
-                              if (!revealedRound?.teamSubmissions || revealedRound.teamSubmissions.length === 0) {
-                                return <div className="text-amber-600 text-center p-2">⚠️ No teams submitted this round</div>
-                              }
-                              return null
                             })()}
                           </div>
                           
