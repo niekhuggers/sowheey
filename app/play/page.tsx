@@ -137,11 +137,9 @@ function PlayGameContent() {
         currentRound: round.roundNumber - 1,
         currentRoundData: round
       } : prev)
-      // Don't clear anything - let them see previous round's results
-      // Will clear when they start selecting for new round
-      // setSubmitted(false) - KEEP submitted state!
-      // setRankings([]) - KEEP previous rankings visible!
-      // setFmkAnswers({}) - KEEP previous answers visible!
+      // Reset submitted so new question appears, but keep rankings for display
+      setSubmitted(false) // Allow new submissions
+      // Keep rankings and answers visible - they'll clear when player starts selecting
     })
     
     socket.on('round-closed', (round: any) => {
@@ -642,11 +640,11 @@ function PlayGameContent() {
           </Card>
         )}
 
-        {(gameState.roundStatus === 'revealing' || (gameState.roundStatus === 'waiting' && rankings.length > 0 && submitted)) && (
+        {(gameState.roundStatus === 'revealing' || (gameState.roundStatus === 'waiting' && rankings.length > 0)) && (
           <Card>
             <CardHeader>
               <CardTitle className="text-center">
-                Round {gameState.currentRound + 1} {gameState.roundStatus === 'revealing' ? 'Results' : 'Answer'}
+                Round {gameState.currentRound} {gameState.roundStatus === 'revealing' ? 'Results' : '- Previous Answer'}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -656,15 +654,18 @@ function PlayGameContent() {
                 {gameState.roundStatus === 'revealing' && <div className="text-4xl text-center">🎉</div>}
                 
                 {/* Community Top 3 - Always visible after reveal! */}
-                {submitted && (
+                {rankings.length > 0 && (
                   <div className="p-4 bg-green-50 rounded-lg border-2 border-green-300">
                     <h3 className="font-bold mb-3 text-green-900 text-center text-lg">✅ Goede Antwoord (Community Top 3):</h3>
                     <div className="space-y-2">
                       {(() => {
                         // Use pre-loaded rankings for instant display
+                        // If in waiting mode, show previous round (currentRound is already incremented)
+                        const roundToShow = gameState.roundStatus === 'waiting' ? gameState.currentRound : gameState.currentRound + 1
+                        
                         if (allCommunityRankings?.rankings) {
                           const currentRanking = allCommunityRankings.rankings.find(
-                            (r: any) => r.questionNumber === gameState.currentRound + 1
+                            (r: any) => r.questionNumber === roundToShow
                           )
                           
                           if (currentRanking) {
