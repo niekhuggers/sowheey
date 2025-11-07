@@ -81,6 +81,17 @@ interface GameState {
     communityRank1Id?: string | null
     communityRank2Id?: string | null
     communityRank3Id?: string | null
+    teamSubmissions?: Array<{
+      teamId: string
+      rank1Id: string
+      rank2Id: string
+      rank3Id: string
+      submittedAt: Date
+    }>
+    teamScores?: Array<{
+      teamId: string
+      points: number
+    }>
   }>
 }
 
