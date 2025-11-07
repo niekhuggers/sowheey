@@ -179,12 +179,16 @@ export default function AdminDashboard() {
     })
     
     socket.on('round-revealed', (data) => {
-      console.log('Round revealed:', data)
-      // Update status to revealing but DON'T reload - wait for manual "Next Round"
-      setGameState((prev: any) => prev ? {
-        ...prev,
-        roundStatus: 'revealing' as const
-      } : prev)
+      console.log('Round revealed, reloading to show updated scores:', data)
+      // Reload game state to show updated team scores in leaderboard
+      setTimeout(async () => {
+        await loadGameState()
+        // Keep status as 'revealing' so "Next Round" button stays visible
+        setGameState((prev: any) => prev ? {
+          ...prev,
+          roundStatus: 'revealing' as const
+        } : prev)
+      }, 1000) // Wait for scores to be saved to database
     })
     
     return () => {
