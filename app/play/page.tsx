@@ -670,54 +670,11 @@ function PlayGameContent() {
                       ))}
                     </div>
                     
-                    {/* Show THIS round's score and total */}
-                    <div className="space-y-3">
-                      {(() => {
-                        console.log('🎯 Player reveal - checking scores for team:', teamId)
-                        console.log('Current round:', gameState.currentRound)
-                        console.log('Rounds available:', gameState.rounds?.length)
-                        
-                        const currentRoundData = gameState.rounds?.[gameState.currentRound]
-                        console.log('Current round data:', currentRoundData)
-                        console.log('TeamScores in round:', currentRoundData?.teamScores)
-                        
-                        const thisRoundScore = currentRoundData?.teamScores?.find((ts: any) => ts.teamId === teamId)
-                        console.log('This round score for team:', thisRoundScore)
-                        
-                        const currentTeam = gameState.teams?.find((t: any) => t.id === teamId)
-                        console.log('Current team data:', currentTeam)
-                        
-                        return (
-                          <>
-                            {/* This Round's Score */}
-                            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-2 border-green-300">
-                              <div className="text-sm text-green-700 mb-1">This Round</div>
-                              <div className="text-4xl font-bold text-green-700">
-                                {thisRoundScore?.points !== undefined ? (
-                                  `+${thisRoundScore.points}`
-                                ) : (
-                                  '...'
-                                )} <span className="text-2xl">pts</span>
-                              </div>
-                            </div>
-                            
-                            {/* Total Accumulated Score */}
-                            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300">
-                              <div className="text-sm text-blue-700 mb-1">Total Score</div>
-                              <div className="text-4xl font-bold text-blue-700">
-                                {currentTeam?.totalScore !== undefined ? (
-                                  currentTeam.totalScore
-                                ) : (
-                                  '...'
-                                )} <span className="text-2xl">pts</span>
-                              </div>
-                              <div className="text-xs text-blue-600 mt-1">
-                                Accumulated across all rounds
-                              </div>
-                            </div>
-                          </>
-                        )
-                      })()}
+                    {/* Scoring disabled - manual tracking by host */}
+                    <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <div className="text-sm text-yellow-800 text-center">
+                        ⭐ Host will announce scores ⭐
+                      </div>
                     </div>
                   </div>
                 )}

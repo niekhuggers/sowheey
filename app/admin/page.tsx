@@ -1010,35 +1010,23 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Score Leaderboard */}
-            <Card className="mb-6">
+            {/* Score Leaderboard - DISABLED for manual scoring */}
+            <Card className="mb-6 bg-gray-100">
               <CardHeader>
-                <CardTitle>🏆 Score Leaderboard</CardTitle>
+                <CardTitle>🏆 Score Leaderboard (Manual Tracking)</CardTitle>
+                <p className="text-sm text-gray-600">Track scores with pen & paper or Excel tonight!</p>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {gameState.teams
-                    .sort((a: any, b: any) => (b.totalScore || 0) - (a.totalScore || 0))
-                    .map((team: any, index: number) => (
-                      <div key={team.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">
-                            {index === 0 && '🥇'}
-                            {index === 1 && '🥈'}
-                            {index === 2 && '🥉'}
-                            {index > 2 && `${index + 1}.`}
-                          </span>
-                          <div>
-                            <div className="font-medium">{team.name}</div>
-                            <div className="text-sm text-gray-600">{team.members.join(' + ')}</div>
-                          </div>
-                        </div>
-                        <div className="text-2xl font-bold">{team.totalScore || 0}</div>
+                <div className="space-y-2 text-sm text-gray-700">
+                  {gameState.teams.map((team: any) => (
+                    <div key={team.id} className="flex items-center justify-between p-2 bg-white rounded">
+                      <div>
+                        <div className="font-medium">{team.name}</div>
+                        <div className="text-xs text-gray-500">{team.members.join(' + ')}</div>
                       </div>
-                    ))}
-                  {gameState.teams.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">No teams created yet</p>
-                  )}
+                      <div className="text-gray-400">_____ pts</div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -1213,8 +1201,9 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Team Submissions Audit Trail */}
-                        <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left">
-                          <div className="text-sm font-medium text-gray-700 mb-3">📋 Team Submissions & Scores:</div>
+                        <div className="mb-6 p-4 bg-yellow-50 rounded-lg border-2 border-yellow-400 text-left">
+                          <div className="text-lg font-bold text-yellow-900 mb-2">📋 Team Submissions (Score Manually):</div>
+                          <div className="text-sm text-yellow-700 mb-3">Compare each team's submission to community top 3 above. +1 per person in top 3, +2 bonus if exact position</div>
                           <div className="space-y-3 text-sm">
                             {(() => {
                               const revealedRound = gameState.rounds?.[gameState.currentRound]
@@ -1222,7 +1211,6 @@ export default function AdminDashboard() {
                               
                               return revealedRound.teamSubmissions.map((submission: any) => {
                                 const team = gameState.teams?.find((t: any) => t.id === submission.teamId)
-                                const score = revealedRound.teamScores?.find((ts: any) => ts.teamId === submission.teamId)
                                 
                                 // Get participant names
                                 const rank1 = gameState.participants?.find((p: any) => p.id === submission.rank1Id)
@@ -1230,19 +1218,13 @@ export default function AdminDashboard() {
                                 const rank3 = gameState.participants?.find((p: any) => p.id === submission.rank3Id)
                                 
                                 return (
-                                  <div key={submission.teamId} className="p-3 bg-white rounded border">
-                                    <div className="flex justify-between items-start mb-2">
-                                      <div>
-                                        <div className="font-medium text-gray-900">{team?.name}</div>
-                                        <div className="text-xs text-gray-500">{team?.members.join(' + ')}</div>
-                                      </div>
-                                      <div className="text-right">
-                                        <div className="text-xl font-bold text-green-700">{score?.points || 0} pts</div>
-                                        <div className="text-xs text-gray-500">this round</div>
-                                      </div>
+                                  <div key={submission.teamId} className="p-4 bg-white rounded-lg border-2 border-gray-300">
+                                    <div className="mb-2">
+                                      <div className="text-lg font-bold text-gray-900">{team?.name}</div>
+                                      <div className="text-xs text-gray-500">{team?.members.join(' + ')}</div>
                                     </div>
-                                    <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                                      Submitted: {rank1?.name}, {rank2?.name}, {rank3?.name}
+                                    <div className="text-base font-medium bg-blue-50 p-3 rounded">
+                                      Their Answer: <span className="text-blue-700">{rank1?.name}, {rank2?.name}, {rank3?.name}</span>
                                     </div>
                                   </div>
                                 )
