@@ -102,11 +102,13 @@ function PlayGameContent() {
   const [submitted, setSubmitted] = useState(false)
   const [team, setTeam] = useState<any>(null)
   const [deviceToken, setDeviceToken] = useState<string>('')
+  const [allCommunityRankings, setAllCommunityRankings] = useState<any>(null)
 
   useEffect(() => {
     // Always auto-join WEEKEND2024 - this app is only for this room
     setRoomCode('WEEKEND2024')
     loadGameState('WEEKEND2024')
+    loadCommunityRankings()
 
     // Generate or get existing device token
     let token = localStorage.getItem('deviceToken')
@@ -201,6 +203,19 @@ function PlayGameContent() {
       socket.off('connect')
     }
   }, [])
+
+  const loadCommunityRankings = async () => {
+    try {
+      const response = await fetch('/api/all-community-rankings')
+      if (response.ok) {
+        const data = await response.json()
+        setAllCommunityRankings(data)
+        console.log('✅ Pre-loaded all community rankings:', data.rankings?.length)
+      }
+    } catch (error) {
+      console.error('Error loading community rankings:', error)
+    }
+  }
 
   const loadGameState = async (code: string) => {
     try {
@@ -635,9 +650,31 @@ function PlayGameContent() {
                     <h3 className="font-bold mb-3 text-green-900 text-center text-lg">✅ Goede Antwoord (Community Top 3):</h3>
                     <div className="space-y-2">
                       {(() => {
-                        // Get REAL community ranking from the revealed round data
-                        const revealedRound = gameState.rounds?.[gameState.currentRound]
+                        // Use pre-loaded rankings for instant display
+                        if (allCommunityRankings?.rankings) {
+                          const currentRanking = allCommunityRankings.rankings.find(
+                            (r: any) => r.questionNumber === gameState.currentRound + 1
+                          )
+                          
+                          if (currentRanking) {
+                            const top3 = [
+                              currentRanking.communityTop3.rank1,
+                              currentRanking.communityTop3.rank2,
+                              currentRanking.communityTop3.rank3
+                            ]
+                            
+                            return top3.map((person, index) => (
+                              <div key={person} className="flex items-center justify-center space-x-3 text-xl">
+                                <span className="text-3xl">{['🥇', '🥈', '🥉'][index]}</span>
+                                <span className="font-bold">{person}</span>
+                                {HOSTS.includes(person || '') && <span>👑</span>}
+                              </div>
+                            ))
+                          }
+                        }
                         
+                        // Fallback to round data if pre-loaded rankings not available
+                        const revealedRound = gameState.rounds?.[gameState.currentRound]
                         if (revealedRound?.communityRank1Id && gameState.participants) {
                           const rank1 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank1Id)
                           const rank2 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank2Id)
@@ -652,7 +689,7 @@ function PlayGameContent() {
                           ))
                         }
                         
-                        // Fallback - calculating...
+                        // Loading...
                         return <div className="text-gray-500">Berekenen...</div>
                       })()}
                     </div>
