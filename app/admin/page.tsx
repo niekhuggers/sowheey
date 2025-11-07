@@ -120,6 +120,7 @@ export default function AdminDashboard() {
   const [teamStatus, setTeamStatus] = useState<any>(null)
   const [allCommunityRankings, setAllCommunityRankings] = useState<any>(null)
   const [showRankings, setShowRankings] = useState(false)
+  const [manualScores, setManualScores] = useState<{[roundNumber: number]: {[teamName: string]: number}}>({})
 
   // Calculate completion stats
   const getCompletionStats = () => {
@@ -1010,23 +1011,39 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Score Leaderboard - DISABLED for manual scoring */}
-            <Card className="mb-6 bg-gray-100">
+            {/* Score Leaderboard - Manual Tracking */}
+            <Card className="mb-6">
               <CardHeader>
-                <CardTitle>🏆 Score Leaderboard (Manual Tracking)</CardTitle>
-                <p className="text-sm text-gray-600">Track scores with pen & paper or Excel tonight!</p>
+                <CardTitle>🏆 Score Leaderboard</CardTitle>
+                <p className="text-sm text-gray-600">Your manually tracked scores</p>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm text-gray-700">
-                  {gameState.teams.map((team: any) => (
-                    <div key={team.id} className="flex items-center justify-between p-2 bg-white rounded">
-                      <div>
-                        <div className="font-medium">{team.name}</div>
-                        <div className="text-xs text-gray-500">{team.members.join(' + ')}</div>
+                <div className="space-y-3">
+                  {gameState.teams
+                    .map((team: any) => ({
+                      ...team,
+                      manualTotal: Object.keys(manualScores).reduce((sum, round) => {
+                        return sum + (manualScores[parseInt(round)]?.[team.name] || 0)
+                      }, 0)
+                    }))
+                    .sort((a: any, b: any) => b.manualTotal - a.manualTotal)
+                    .map((team: any, index: number) => (
+                      <div key={team.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">
+                            {index === 0 && '🥇'}
+                            {index === 1 && '🥈'}
+                            {index === 2 && '🥉'}
+                            {index > 2 && `${index + 1}.`}
+                          </span>
+                          <div>
+                            <div className="font-medium">{team.name}</div>
+                            <div className="text-xs text-gray-500">{team.members.join(' + ')}</div>
+                          </div>
+                        </div>
+                        <div className="text-2xl font-bold">{team.manualTotal}</div>
                       </div>
-                      <div className="text-gray-400">_____ pts</div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </CardContent>
             </Card>
@@ -1200,11 +1217,11 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        {/* Team Submissions Audit Trail */}
+                        {/* Team Submissions & Manual Scoring */}
                         <div className="mb-6 p-4 bg-yellow-50 rounded-lg border-2 border-yellow-400 text-left">
-                          <div className="text-lg font-bold text-yellow-900 mb-2">📋 Team Submissions (Score Manually):</div>
-                          <div className="text-sm text-yellow-700 mb-3">Compare each team's submission to community top 3 above. +1 per person in top 3, +2 bonus if exact position</div>
-                          <div className="space-y-3 text-sm">
+                          <div className="text-lg font-bold text-yellow-900 mb-2">📋 Team Submissions & Manual Scoring:</div>
+                          <div className="text-sm text-yellow-700 mb-3">+1 per person in top 3, +2 bonus if exact position (max 9 pts)</div>
+                          <div className="space-y-3">
                             {(() => {
                               const revealedRound = gameState.rounds?.[gameState.currentRound]
                               if (!revealedRound?.teamSubmissions) return <div className="text-gray-500">Loading submissions...</div>
@@ -1217,14 +1234,40 @@ export default function AdminDashboard() {
                                 const rank2 = gameState.participants?.find((p: any) => p.id === submission.rank2Id)
                                 const rank3 = gameState.participants?.find((p: any) => p.id === submission.rank3Id)
                                 
+                                const currentRoundNumber = gameState.currentRound + 1
+                                const teamScore = manualScores[currentRoundNumber]?.[team?.name || ''] || 0
+                                
                                 return (
                                   <div key={submission.teamId} className="p-4 bg-white rounded-lg border-2 border-gray-300">
-                                    <div className="mb-2">
-                                      <div className="text-lg font-bold text-gray-900">{team?.name}</div>
-                                      <div className="text-xs text-gray-500">{team?.members.join(' + ')}</div>
+                                    <div className="flex justify-between items-start mb-3">
+                                      <div>
+                                        <div className="text-lg font-bold text-gray-900">{team?.name}</div>
+                                        <div className="text-xs text-gray-500">{team?.members.join(' + ')}</div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          max="9"
+                                          value={teamScore}
+                                          onChange={(e) => {
+                                            const score = parseInt(e.target.value) || 0
+                                            setManualScores({
+                                              ...manualScores,
+                                              [currentRoundNumber]: {
+                                                ...manualScores[currentRoundNumber],
+                                                [team?.name || '']: score
+                                              }
+                                            })
+                                          }}
+                                          className="w-20 text-center text-xl font-bold"
+                                          placeholder="0"
+                                        />
+                                        <span className="text-sm text-gray-600">pts</span>
+                                      </div>
                                     </div>
                                     <div className="text-base font-medium bg-blue-50 p-3 rounded">
-                                      Their Answer: <span className="text-blue-700">{rank1?.name}, {rank2?.name}, {rank3?.name}</span>
+                                      Answer: <span className="text-blue-700">{rank1?.name}, {rank2?.name}, {rank3?.name}</span>
                                     </div>
                                   </div>
                                 )
@@ -1237,6 +1280,24 @@ export default function AdminDashboard() {
                               }
                               return null
                             })()}
+                          </div>
+                          
+                          {/* Total Tally */}
+                          <div className="mt-4 p-3 bg-white rounded border-2 border-yellow-500">
+                            <div className="text-sm font-bold mb-2">📊 Running Totals:</div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {gameState.teams.map((team: any) => {
+                                const total = Object.keys(manualScores).reduce((sum, round) => {
+                                  return sum + (manualScores[parseInt(round)]?.[team.name] || 0)
+                                }, 0)
+                                return (
+                                  <div key={team.name} className="flex justify-between p-2 bg-gray-50 rounded">
+                                    <span>{team.name}:</span>
+                                    <span className="font-bold">{total} pts</span>
+                                  </div>
+                                )
+                              })}
+                            </div>
                           </div>
                         </div>
                         
