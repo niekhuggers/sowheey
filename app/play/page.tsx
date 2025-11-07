@@ -624,15 +624,15 @@ function PlayGameContent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center space-y-4">
-                <div className="text-lg font-medium">{currentQuestion.text}</div>
+              <div className="space-y-4">
+                <div className="text-lg font-medium text-center">{currentQuestion.text}</div>
                 
-                {gameState.roundStatus === 'revealing' && <div className="text-4xl">🎉</div>}
+                {gameState.roundStatus === 'revealing' && <div className="text-4xl text-center">🎉</div>}
                 
                 {/* Community Top 3 - Show during and after reveal */}
                 {gameState.roundStatus === 'revealing' && (
-                  <div className="mb-4 p-4 bg-green-50 rounded-lg border-2 border-green-300">
-                    <h3 className="font-medium mb-3 text-green-900">✅ Community Top 3:</h3>
+                  <div className="p-4 bg-green-50 rounded-lg border-2 border-green-300">
+                    <h3 className="font-bold mb-3 text-green-900 text-center text-lg">✅ Goede Antwoord (Community Top 3):</h3>
                     <div className="space-y-2">
                       {(() => {
                         // Get REAL community ranking from the revealed round data
@@ -644,8 +644,8 @@ function PlayGameContent() {
                           const rank3 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank3Id)
                           
                           return [rank1?.name, rank2?.name, rank3?.name].filter(Boolean).map((person, index) => (
-                            <div key={person} className="flex items-center justify-center space-x-2 text-lg">
-                              <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
+                            <div key={person} className="flex items-center justify-center space-x-3 text-xl">
+                              <span className="text-3xl">{['🥇', '🥈', '🥉'][index]}</span>
                               <span className="font-bold">{person}</span>
                               {HOSTS.includes(person || '') && <span>👑</span>}
                             </div>
@@ -653,7 +653,7 @@ function PlayGameContent() {
                         }
                         
                         // Fallback - calculating...
-                        return <div className="text-gray-500">Calculating community ranking...</div>
+                        return <div className="text-gray-500">Berekenen...</div>
                       })()}
                     </div>
                   </div>
@@ -662,12 +662,12 @@ function PlayGameContent() {
                 {/* Your Team's Answer - Always visible after submission */}
                 {teamId && rankings.length > 0 && (
                   <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
-                    <h3 className="font-medium mb-3 text-blue-900">Your Team's Answer:</h3>
+                    <h3 className="font-bold mb-3 text-blue-900 text-center text-lg">Jullie Antwoord:</h3>
                     <div className="space-y-2">
                       {rankings.slice(0, 3).map((person, index) => (
-                        <div key={person} className="flex items-center justify-center space-x-2 text-lg">
-                          <span className="font-bold">{index + 1}.</span>
-                          <span className="font-medium">{person}</span>
+                        <div key={person} className="flex items-center justify-center space-x-3 text-xl">
+                          <span className="font-bold text-2xl">{index + 1}.</span>
+                          <span className="font-bold">{person}</span>
                           {HOSTS.includes(person) && <span>👑</span>}
                         </div>
                       ))}
@@ -676,15 +676,18 @@ function PlayGameContent() {
                 )}
                 
                 {gameState.roundStatus === 'revealing' && (
-                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div className="text-sm text-yellow-800 text-center font-medium">
-                      ⭐ Host is calculating your score ⭐
+                  <div className="p-4 bg-yellow-50 rounded-lg border-2 border-yellow-300">
+                    <div className="text-base text-yellow-900 text-center font-bold">
+                      ⭐ Niek is jullie score aan het berekenen ⭐
+                    </div>
+                    <div className="text-sm text-yellow-700 text-center mt-2">
+                      Vergelijk jullie antwoord met het goede antwoord!
                     </div>
                   </div>
                 )}
                 
-                <div className="text-sm text-gray-600 mt-4">
-                  {gameState.roundStatus === 'revealing' ? 'Waiting for next round...' : 'Keep this visible for scoring!'}
+                <div className="text-sm text-gray-600 mt-4 text-center">
+                  {gameState.roundStatus === 'revealing' ? 'Wachten op volgende ronde...' : 'Blijf op dit scherm voor de score!'}
                 </div>
               </div>
             </CardContent>
