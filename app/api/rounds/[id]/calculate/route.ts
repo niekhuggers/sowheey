@@ -228,7 +228,7 @@ export async function POST(
           scores: {
             where: {
               round: {
-                status: { in: ['REVEALED', 'CLOSED'] }
+                status: 'REVEALED'  // ONLY revealed rounds (not CLOSED or WAITING)
               }
             }
           },
@@ -240,7 +240,7 @@ export async function POST(
                     where: {
                       round: {
                         roomId: round.roomId,
-                        status: { in: ['REVEALED', 'CLOSED'] }
+                        status: 'REVEALED'  // ONLY revealed rounds
                       }
                     }
                   }
