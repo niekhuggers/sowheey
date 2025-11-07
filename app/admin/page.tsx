@@ -1052,36 +1052,86 @@ export default function AdminDashboard() {
                     {gameState.roundStatus === 'revealing' && (
                       <div className="text-center">
                         <div className="text-lg font-medium mb-4">🎉 Results Revealed!</div>
-                        <div className="text-sm text-gray-600 mb-4">Community Top 3 (calculated from pre-submissions)</div>
-                        <div className="space-y-2 mb-6">
-                          {(() => {
-                            // Get the actual revealed round from database
-                            const revealedRound = gameState.rounds?.[gameState.currentRound]
-                            
-                            // If we have the actual community ranking from database, use it
-                            if (revealedRound?.communityRank1Id) {
-                              const rank1 = gameState.participants?.find((p: any) => p.id === revealedRound.communityRank1Id)
-                              const rank2 = gameState.participants?.find((p: any) => p.id === revealedRound.communityRank2Id)
-                              const rank3 = gameState.participants?.find((p: any) => p.id === revealedRound.communityRank3Id)
+                        
+                        {/* Community Top 3 */}
+                        <div className="mb-6">
+                          <div className="text-sm text-gray-600 mb-2">Community Top 3 (calculated from pre-submissions)</div>
+                          <div className="space-y-2">
+                            {(() => {
+                              // Get the actual revealed round from database
+                              const revealedRound = gameState.rounds?.[gameState.currentRound]
                               
-                              return [rank1?.name, rank2?.name, rank3?.name].filter(Boolean).map((person, index) => (
+                              // If we have the actual community ranking from database, use it
+                              if (revealedRound?.communityRank1Id) {
+                                const rank1 = gameState.participants?.find((p: any) => p.id === revealedRound.communityRank1Id)
+                                const rank2 = gameState.participants?.find((p: any) => p.id === revealedRound.communityRank2Id)
+                                const rank3 = gameState.participants?.find((p: any) => p.id === revealedRound.communityRank3Id)
+                                
+                                return [rank1?.name, rank2?.name, rank3?.name].filter(Boolean).map((person, index) => (
+                                  <div key={person} className="flex items-center justify-center space-x-2">
+                                    <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
+                                    <span className="font-medium">{person}</span>
+                                    {HOSTS.includes(person || '') && <span>👑</span>}
+                                  </div>
+                                ))
+                              }
+                              
+                              // Fallback to hardcoded if database data not available
+                              return COMMUNITY_ANSWERS[gameState.currentRound]?.map((person, index) => (
                                 <div key={person} className="flex items-center justify-center space-x-2">
                                   <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
                                   <span className="font-medium">{person}</span>
-                                  {HOSTS.includes(person || '') && <span>👑</span>}
+                                  {HOSTS.includes(person) && <span>👑</span>}
                                 </div>
-                              ))
-                            }
-                            
-                            // Fallback to hardcoded if database data not available
-                            return COMMUNITY_ANSWERS[gameState.currentRound]?.map((person, index) => (
-                              <div key={person} className="flex items-center justify-center space-x-2">
-                                <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
-                                <span className="font-medium">{person}</span>
-                                {HOSTS.includes(person) && <span>👑</span>}
-                              </div>
-                            )) || []
-                          })()}
+                              )) || []
+                            })()}
+                          </div>
+                        </div>
+
+                        {/* Team Submissions Audit Trail */}
+                        <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left">
+                          <div className="text-sm font-medium text-gray-700 mb-3">📋 Team Submissions & Scores:</div>
+                          <div className="space-y-3 text-sm">
+                            {(() => {
+                              const revealedRound = gameState.rounds?.[gameState.currentRound]
+                              if (!revealedRound?.teamSubmissions) return <div className="text-gray-500">Loading submissions...</div>
+                              
+                              return revealedRound.teamSubmissions.map((submission: any) => {
+                                const team = gameState.teams?.find((t: any) => t.id === submission.teamId)
+                                const score = revealedRound.teamScores?.find((ts: any) => ts.teamId === submission.teamId)
+                                
+                                // Get participant names
+                                const rank1 = gameState.participants?.find((p: any) => p.id === submission.rank1Id)
+                                const rank2 = gameState.participants?.find((p: any) => p.id === submission.rank2Id)
+                                const rank3 = gameState.participants?.find((p: any) => p.id === submission.rank3Id)
+                                
+                                return (
+                                  <div key={submission.teamId} className="p-3 bg-white rounded border">
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div>
+                                        <div className="font-medium text-gray-900">{team?.name}</div>
+                                        <div className="text-xs text-gray-500">{team?.members.join(' + ')}</div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-xl font-bold text-green-700">{score?.points || 0} pts</div>
+                                        <div className="text-xs text-gray-500">this round</div>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                      Submitted: {rank1?.name}, {rank2?.name}, {rank3?.name}
+                                    </div>
+                                  </div>
+                                )
+                              })
+                            })()}
+                            {(() => {
+                              const revealedRound = gameState.rounds?.[gameState.currentRound]
+                              if (!revealedRound?.teamSubmissions || revealedRound.teamSubmissions.length === 0) {
+                                return <div className="text-amber-600 text-center p-2">⚠️ No teams submitted this round</div>
+                              }
+                              return null
+                            })()}
+                          </div>
                         </div>
                         
                         <div className="space-y-3">

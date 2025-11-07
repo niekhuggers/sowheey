@@ -56,6 +56,11 @@ export async function GET(request: NextRequest) {
               include: {
                 team: true
               }
+            },
+            teamSubmissions: {
+              include: {
+                team: true
+              }
             }
           }
         }
