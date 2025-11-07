@@ -93,6 +93,8 @@ export async function POST(
     // Calculate team scores by comparing team submissions against community ranking
     const teamScores: { teamId: string; points: number }[] = []
     
+    console.log(`🎯 Processing ${round.teamSubmissions.length} team submissions`)
+    
     for (const teamSubmission of round.teamSubmissions) {
       const points = calculateParticipantScore(
         {
@@ -104,12 +106,16 @@ export async function POST(
       )
       
       console.log(`Team ${teamSubmission.team.name} scored ${points} points for their submission`)
+      console.log(`  - Submission: rank1=${teamSubmission.rank1Id}, rank2=${teamSubmission.rank2Id}, rank3=${teamSubmission.rank3Id}`)
+      console.log(`  - Community: rank1=${communityTop3.rank1Id}, rank2=${communityTop3.rank2Id}, rank3=${communityTop3.rank3Id}`)
       
       teamScores.push({
         teamId: teamSubmission.teamId,
         points,
       })
     }
+    
+    console.log(`📊 Total team scores to save: ${teamScores.length}`)
     
     // Save scores to database
     await prisma.$transaction(async (tx) => {
@@ -130,19 +136,36 @@ export async function POST(
       }
       
       // Delete existing team scores for this round
+      console.log(`🗑️ Deleting existing team scores for round ${round.id}`)
       await tx.teamScore.deleteMany({
         where: { roundId: round.id },
       })
+      console.log(`✅ Deleted existing team scores`)
       
       // Create new team scores
       if (teamScores.length > 0) {
-        await tx.teamScore.createMany({
-          data: teamScores.map((teamScore) => ({
-            roundId: round.id,
-            teamId: teamScore.teamId,
-            points: teamScore.points,
-          })),
-        })
+        console.log(`💾 Creating ${teamScores.length} TeamScore records...`)
+        console.log(`Data to save:`, teamScores.map((teamScore) => ({
+          roundId: round.id,
+          teamId: teamScore.teamId,
+          points: teamScore.points,
+        })))
+        
+        try {
+          await tx.teamScore.createMany({
+            data: teamScores.map((teamScore) => ({
+              roundId: round.id,
+              teamId: teamScore.teamId,
+              points: teamScore.points,
+            })),
+          })
+          console.log(`✅ TeamScore records created successfully!`)
+        } catch (teamScoreError) {
+          console.error(`❌ FAILED to create TeamScore records:`, teamScoreError)
+          throw teamScoreError
+        }
+      } else {
+        console.log(`⚠️ No team scores to save (teamScores.length = 0)`)
       }
       
       // Calculate aggregate scores
