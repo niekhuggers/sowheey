@@ -145,9 +145,12 @@ function PlayGameContent() {
       setGameState((prev: any) => prev ? { ...prev, roundStatus: 'revealing' } : prev)
     })
     
-    socket.on('round-revealed', (round: any) => {
-      console.log('Round revealed:', round)
-      setGameState((prev: any) => prev ? { ...prev, roundStatus: 'revealing' } : prev)
+    socket.on('round-revealed', (data: any) => {
+      console.log('Round revealed, reloading to show updated scores:', data)
+      // Reload game state to show updated team scores
+      setTimeout(() => {
+        loadGameState('WEEKEND2024')
+      }, 1500) // Wait for scores to be saved to database
     })
     
     socket.on('game-completed', () => {
@@ -613,22 +616,31 @@ function PlayGameContent() {
                   <h3 className="font-medium mb-2">Community Top 3:</h3>
                   <div className="space-y-2">
                     {(() => {
-                      // Calculate community ranking for this round
-                      const communityRanking = calculateCommunityRanking(gameState.currentRound, null)
+                      // Get REAL community ranking from the revealed round data
+                      const revealedRound = gameState.rounds?.[gameState.currentRound]
                       
-                      return communityRanking.map((person, index) => (
-                        <div key={person} className="flex items-center justify-center space-x-2">
-                          <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
-                          <span className="font-medium">{person}</span>
-                          {HOSTS.includes(person) && <span>👑</span>}
-                        </div>
-                      ))
+                      if (revealedRound?.communityRank1Id && gameState.participants) {
+                        const rank1 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank1Id)
+                        const rank2 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank2Id)
+                        const rank3 = gameState.participants.find((p: any) => p.id === revealedRound.communityRank3Id)
+                        
+                        return [rank1?.name, rank2?.name, rank3?.name].filter(Boolean).map((person, index) => (
+                          <div key={person} className="flex items-center justify-center space-x-2">
+                            <span className="text-2xl">{['🥇', '🥈', '🥉'][index]}</span>
+                            <span className="font-medium">{person}</span>
+                            {HOSTS.includes(person || '') && <span>👑</span>}
+                          </div>
+                        ))
+                      }
+                      
+                      // Fallback - calculating...
+                      return <div className="text-gray-500">Calculating community ranking...</div>
                     })()}
                   </div>
                 </div>
 
-                {/* Your Team's Answer */}
-                {rankings.length > 0 && (
+                {/* Your Team's Score - Get from database */}
+                {teamId && (
                   <div className="border-t pt-4">
                     <h3 className="font-medium mb-2">Your Team's Answer:</h3>
                     <div className="space-y-1">
@@ -641,24 +653,27 @@ function PlayGameContent() {
                       ))}
                     </div>
                     
-                    {/* Calculate and show score */}
+                    {/* Show actual score from database */}
                     <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                      <div className="text-lg font-bold text-blue-700">
-                        Points: {(() => {
-                          const communityRanking = calculateCommunityRanking(gameState.currentRound, null)
-                          const teamScore = calculateTeamScore(rankings.slice(0, 3), communityRanking)
-                          return teamScore
+                      <div className="text-2xl font-bold text-blue-700">
+                        {(() => {
+                          const currentTeam = gameState.teams?.find((t: any) => t.id === teamId)
+                          return currentTeam?.totalScore !== undefined ? (
+                            `${currentTeam.totalScore} Points!`
+                          ) : (
+                            'Calculating...'
+                          )
                         })()}
                       </div>
-                      <div className="text-sm text-blue-600">
-                        +1 for each person in community top 3, +2 bonus for exact position match
+                      <div className="text-xs text-gray-500 mt-1">
+                        Total accumulated score
                       </div>
                     </div>
                   </div>
                 )}
                 
                 <div className="text-sm text-gray-600">
-                  Next round starting soon...
+                  Waiting for next round...
                 </div>
               </div>
             </CardContent>
